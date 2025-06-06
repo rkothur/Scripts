@@ -1,0 +1,53 @@
+variables:
+  Module:
+    value: "s3"
+    description: "Target Module to deploy."
+    options:
+      - "s3"
+      - "rds-spg"
+      - "rds-smysql"
+      - "emr7-sg"
+      - "emr7-iam"
+      - "emr7"
+      - "emr7-edgenode"
+      - "mwaa-s3"
+      - "mwaa"
+      - "docdb"
+      - "docdb-ddl"
+  Environment:
+    value: "dev"
+    description: "Target Deployment Environment Alias."
+    options:
+      - "dev"
+      - "uat"
+      - "prod"
+      
+include:
+  - component: "${SPECFLOW_PATH}/ci-cd-components/terraform/main@0.2.1"
+    inputs:
+      project-name: "${CI_PROJECT_NAME}"
+      runner-tag:   "smdh-${Environment}-gitlab-runner"
+      #runner-tag:   "docker"
+      directory:    "${CI_PROJECT_DIR}/modules/${Module}"
+      environment:  "${Environment}"                        # for legacy reasons we need to keep old env name for the cluster stack (it's tied to tfstate file)
+      var-file:     "${CI_PROJECT_DIR}/environments/platform-code-${Environment}.tfvars"
+    rules:
+      - if: '$Module == "cluster"'
+
+  - component: "${SPECFLOW_PATH}/ci-cd-components/terraform/main@0.2.1"
+    inputs:
+      project-name: "${Module} - ${CI_PROJECT_NAME}"
+      runner-tag:   "smdh-${Environment}-gitlab-runner"
+      #runner-tag:   "docker"
+      directory:    "${CI_PROJECT_DIR}/modules/${Module}"
+      environment:  "${Module}-${Environment}"            # for new modules we use the new env name which includes the module name
+      var-file:     "${CI_PROJECT_DIR}/environments/platform-code-${Environment}.tfvars"
+    rules:
+      - if: '$Module != "cluster"'
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: always  
+    - when: never 
+
