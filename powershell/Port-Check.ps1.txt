@@ -1,0 +1,36 @@
+README.txt
+
+1. Login to the Server/laptop
+2. Create a folder C:\batch (If you don’t want to use this path, you will have to modify the PowerShell script to point to a different path)
+3. Download the batch.zip file attached to the email to the above folder and extract it. The zip file contains two files -
+   a. Servers.txt – Contains a list of all DataNodes (HBase + worker nodes)
+   b. Port-Check.ps1 – Script that runs a port scan against port 1022 on all the servers in the servers.txt file
+4. Open “Windows PowerShell” from the start menu
+5. Cd to C:\batch and execute the PowerShell by running ./Port-Check.ps1
+6. It will take a while to execute because of the number of servers in the list
+7. The script to create a new output file under the same folder called Port-Check-Output.txt and this file will show the list of all open/closed or filtered hosts.
+
+Port-Check.ps1:
+$host_entry = Get-Content C:\batch\servers.txt
+$Port = 1022
+
+$OutFile = "C:\batch\Port-Check-Output.txt"
+if (Test-Path $OutFile) {
+   Clear-Content $OutFile 
+}
+
+Foreach ($hst in $host_entry)
+{
+  "Checking $hst for Port $Port"
+  $Socket = New-Object Net.Sockets.TcpClient
+  $ErrorActionPreference = 'SilentlyContinue'
+  $Socket.Connect($hst, $Port)
+  $ErrorActionPreference = 'Continue'
+  if ($Socket.Connected) {
+        "${hst}: Port $Port is open" | Add-Content -Path $OutFile
+        $Socket.Close()
+  } else {
+        "${hst}: Port $Port is closed or filtered"  | Add-Content -Path $OutFile
+  }
+  $Socket = $null
+}
