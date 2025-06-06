@@ -1,0 +1,10 @@
+[p2731345@ncepnhpmsta0008 ~]$ cat hbase-check.ksh
+#!/bin/ksh
+
+# Check Ambari Dataabse for HBase Services
+/bigdata/oracle/ambari_oracle_db_connect.sh TRUE FALSE "select component_name,desired_State,host_id,service_name,admin_state,maintenance_state  from hostcomponentdesiredstate where service_name='HBASE';" > test.html
+
+#Email
+#(echo "To: ramakrishna.kothur1@charter.com"; echo "MIME-Version: 1.0"  ; echo "Subject: Securonix - HBase Components"; echo "Content-Type: text/html"; cat $HOME/test.html) | 2>/dev/null /usr/sbin/sendmail -t
+(echo "To: DL-Corp-IT-BigData-Admins@charter.com"; echo "MIME-Version: 1.0"  ; echo "Subject: Securonix - HBase Components"; echo "Content-Type: text/html"; cat $HOME/test.html) | 2>/dev/null /usr/sbin/sendmail -t
+

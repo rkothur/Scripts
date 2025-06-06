@@ -1,0 +1,16 @@
+[svc-bdadmin@ncepnhpmsta0008 scripts]$ cat snmp-port-check.ksh
+#!/bin/ksh
+
+NOW=$(date +"%Y%m%d-%H%M")
+OUTFILE="./snmp-port-check-output-${NOW}.txt"
+
+SNMP_DEST="69.134.208.40 69.134.208.41 69.134.208.42 69.134.21.71 172.24.171.14 69.134.161.71 192.168.78.165"
+
+echo "=====Checking the RED NETWORK SNMP Ports=====" |tee -a $OUTFILE
+echo "---SNMP Ports - Red Network" |tee -a $OUTFILE
+for i in $SNMP_DEST
+do
+ echo "Source: Ambari Server....Destination: $i...." |tee -a $OUTFILE
+ #dzdo nmap -Pn -p162 $i |grep tcp |tee -a $OUTFILE
+ dzdo nmap -Pn -sU -p162 $i |grep udp |tee -a $OUTFILE
+done

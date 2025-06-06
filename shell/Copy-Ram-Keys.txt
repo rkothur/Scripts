@@ -1,0 +1,91 @@
+
+===== Ram - Copy fingerprint and ssh keys to all nodes =====
+
+/home/rkothur
+-rw-rw-r--   1 rkothur rkothur 1.1K Jan  2 13:22 newnodes.txt
+-rw-rw-r--   1 rkothur rkothur  264 Jan  2 13:29 ram-copy-fingerprints-pb.yml
+-rw-rw-r--   1 rkothur rkothur  397 Jan  2 13:52 ram-copy-ssh-keys-pb.yml
+-rwxrwxr-x   1 rkothur rkothur 1.2K Jan  2 13:52 ram-copy-keys.ksh
+drwxrwxr-x   2 rkothur rkothur 4.0K Jan  2 13:52 newnodes
+-rw-rw-r--   1 rkothur rkothur  245 Jan  2 13:53 ram-copy-ssh-keys-pb.retry
+
+
+LINUX-kstluwk06 $ cat ram-copy-keys.ksh
+#!/bin/ksh
+
+###################
+##
+## Script to copy the keys to the remote hosts for user p2731345
+## Written by: Ram
+## Date:
+##
+####################
+
+#### Variables used in the script
+#### Note: Do not modify these variabes
+PATH=/usr/share/centrifydc/bin/:/bin:/usr/bin:/sbin:/usr/sbin:/opt/VRTS/bin:/usr/sbin/hbanyware
+export PATH
+NOW=$(date +"%Y%m%d-%H%M")
+HST=$(hostname)
+BOLD=`tput smso`
+OFFBOLD=`tput rmso`;
+OUTDIR="/home/rkothur/newnodes/"
+OUTFILE="${OUTDIR}/cp-ssh-keys-${HST}-${NOW}.txt"
+TAB="\t"
+NEWLN="\n"
+HEADER="############"
+
+##### Change the ansible hosts file if different
+export ANSIBLE_INVENTORY=/home/rkothur/newnodes.txt
+
+echo "$HEADER  Working on the following hosts $HEADER" | tee -a $OUTFILE
+echo "$HEADER Copying fingerprints to localhost $HEADER" | tee -a $OUTFILE
+ansible-playbook ram-copy-fingerprints-pb.yml | tee -a $OUTFILE
+
+echo "$HEADER Creating .ssh and copy authorized keys $HEADER" | tee -a $OUTFILE
+echo "You have to enter the p2731345 password once" | tee -a $OUTFILE
+ansible-playbook ram-copy-ssh-keys-pb.yml --ask-pass | tee -a $OUTFILE
+
+echo "$HEADER  End of Script $HEADER" | tee -a $OUTFILE
+
+
+
+
+LINUX-kstluwk06 $ cat ram-copy-fingerprints-pb.yml
+---
+- hosts: nodes
+  connection: local
+  gather_facts: no
+  tasks:
+   - command: /usr/bin/ssh-keyscan -T 10 {{ ansible_host }}
+     register: keyscan
+   - lineinfile: name=~/.ssh/known_hosts create=yes line={{ item }}
+     with_items: '{{ keyscan.stdout_lines }}'
+
+
+
+LINUX-kstluwk06 $ cat ram-copy-ssh-keys-pb.yml
+---
+- hosts: nodes
+  remote_user: P2731345
+  gather_facts: no
+
+  tasks:
+  - name: mkdir .ssh and chmod
+    file:
+      path: ~/.ssh
+      owner: p2731345
+      group: p2731345
+      mode: 0700
+      state: directory
+
+  - name: copy authorized-keys
+    copy:
+      src: /home/rkothur/.ssh/authorized_keys
+      dest: /home/p2731345/.ssh
+      owner: p2731345
+      group: p2731345
+      mode: 0600
+
+for i in `cat newnodes.txt |grep -v nodes`; do echo "===== $i ====="; ssh -tq -l p2731345 $i "uptime"; done
+

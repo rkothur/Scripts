@@ -1,0 +1,77 @@
+[svc-bdadmin@ncednhpmsta0002 svc-bdadminAccess]$ cat admin-user-check.ksh
+#!/bin/ksh
+
+##########
+#
+# Description: List the users in our group and a list of all users who has access to svc-bdadmin user
+# Written By: Ram Kothur
+# Date: 2020-July
+# Revisions: 2020-July Initial script
+#
+##########
+
+##### Do Not Edit Below this line #####
+PATH=$PATH:/usr/hdf/current/kafka-broker/bin/
+#EMAIL="ramakrishna.kothur1@charter.com"
+EMAIL="DL-Corp-IT-BigData-Admins@charter.com"
+LOG_FILE="/bigdata/scripts/svc-bdadmin.access"
+NOW=$(date +"%Y%m%d-%H%M")
+HSTNAME=$(hostname -f)
+
+
+ADMIN_GROUP="ux-rg-bd-bigdataadmins"
+SVC_ACT="svc-bdadmin"
+
+>$LOG_FILE
+
+echo "" |tee -a $LOG_FILE
+echo "Checking Group: $ADMIN_GROUP" |tee -a $LOG_FILE
+USER_LIST=`adquery group $ADMIN_GROUP|awk -F: '{print $4}'|tr "," " "`
+USER_LIST_PIPE=$(echo $USER_LIST|tr " " "|")
+
+echo "" |tee -a $LOG_FILE
+echo "==================================" |tee -a $LOG_FILE
+echo "List of users part of $ADMIN_GROUP" |tee -a $LOG_FILE
+echo "==================================" |tee -a $LOG_FILE
+for USER in  $USER_LIST
+do
+   adquery user $USER |awk -F: '{print $1, $5}' |tee -a $LOG_FILE
+done
+
+
+echo " " |tee -a $LOG_FILE
+echo "==================================" |tee -a $LOG_FILE
+echo "List of users with access to svc-bdadmin, apart from the above group" |tee -a $LOG_FILE
+echo "==================================" |tee -a $LOG_FILE
+echo " " |tee -a $LOG_FILE
+for i in `dzdo adquery user |awk -F: '{print $1}'|egrep -v "$USER_LIST_PIPE" |grep -v svc-bdadmin`
+do
+   OUT=$(dzdo dzinfo $i -c -f |grep svc-bdadmin| xargs)
+   if [[ $OUT != "" ]];
+   then
+     echo $OUT |tee -a $LOG_FILE
+     adquery user $i |awk -F: '{print $1, $5}' |tee -a $LOG_FILE
+     echo " " |tee -a $LOG_FILE
+   fi
+done
+
+#echo " " |tee -a $LOG_FILE
+#echo "==================================" |tee -a $LOG_FILE
+#echo "List of users with root privileges" |tee -a $LOG_FILE
+#echo "==================================" |tee -a $LOG_FILE
+#echo " " |tee -a $LOG_FILE
+#for i in `dzdo adquery user |awk -F: '{print $1}'|egrep -v "$USER_LIST_PIPE" |grep -v svc-bdadmin`
+#do
+#   ROOT_OUT=$(dzdo dzinfo $i -c -f |grep -v "CMD:Roles:Linux Admin" |grep "Command:\*"| xargs)
+#   if [[ $ROOT_OUT != "" ]];
+#   then
+#     echo $ROOT_OUT |tee -a $LOG_FILE
+#     adquery user $i |awk -F: '{print $1, $5}' |tee -a $LOG_FILE
+#     echo " " |tee -a $LOG_FILE
+#   fi
+#done
+
+
+SUBJECT="DevHadoop - svc-bdadmin user access"
+$(cat $LOG_FILE | mailx -s "$SUBJECT" $EMAIL)
+[svc-bdadmin@ncednhpmsta0002 svc-bdadminAccess]$

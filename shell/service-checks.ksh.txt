@@ -1,0 +1,59 @@
+[p2731345@ncepnhpmsta0008 ~]$ cat service-checks.ksh
+#!/bin/ksh
+##########
+#
+# Script to Check the status of all the Hadoop Cluster Components
+# Written by: Ram
+# Date: Mar 2020
+#
+#########
+
+
+AMBARI_USER="admin"
+AMBARI_PASS="Bd@taAdmin?"
+AMBARI_URL="https://ncepnhpmsta0008.hadoop.charter.com:8443/api/v1"
+AMBARI_CLUS="SECEMCDataLake_PROD"
+
+> hosts.txt
+> status.txt
+
+# Get Hosts
+2>/dev/null curl -u ${AMBARI_USER}:${AMBARI_PASS} -k "${AMBARI_URL}/clusters/${AMBARI_CLUS}/hosts/" |grep host_name|uniq|awk -F: '{print $2}'|sed 's/\"//g'|sed 's/\ //' > hosts.txt
+
+# Get Components
+for host in `cat hosts.txt`
+do
+   > services.txt
+   2>/dev/null curl -u ${AMBARI_USER}:${AMBARI_PASS} -k "${AMBARI_URL}/clusters/${AMBARI_CLUS}/hosts/${host}/host_components"|grep component_name|awk -F: '{print $2}'|sed 's/\"//g'|sed 's/\ //'|sed 's/,//' |egrep -v 'CLIENT|PIG|SQOOP|HST' |xargs > services.txt
+   for service in `cat services.txt`
+   do
+      STATE=$(2>/dev/null curl -u ${AMBARI_USER}:${AMBARI_PASS} -k "${AMBARI_URL}/clusters/${AMBARI_CLUS}/hosts/${host}/host_components/${service}"|grep state |egrep -v 'upgrade|admin|STANDBY|ACTIVE' |awk -F: '{print $2}' |sed 's/\"//g'|sed 's/\ //'|sed 's/,//'|xargs)
+      echo $host $service $STATE >> status.txt
+   done
+done
+
+
+# Create HTML file
+awk 'BEGIN{
+print  "MIME-Version: 1.0"
+print  "Content-Type: text/html"
+print  "Content-Disposition: inline"
+print  "<HTML><H3>"Securonix Cluster Stats "</H3>" "<TABLE border="1"><TH>Hostname</TH><TH>Component</TH><TH>Desired State</TH><TH>Maintenance</TH><TH>Current State</TH>"
+}
+ {
+printf "<TR>"
+for(i=1;i<=NF;i++)
+if ( i == 5 && $i != "STARTED" )
+   printf "<TD bgcolor=\"#FF0000\">%s</TD>", $i
+else
+   printf "<TD>%s</TD>", $i
+print "</TR>"
+ }
+END{
+print "</TABLE></BODY></HTML>"
+ }
+' $HOME/status.txt > $HOME/status.html
+
+# Email the HTML file
+(echo "To: DL-Corp-IT-BigData-Admins@charter.com"; echo "MIME-Version: 1.0"  ; echo "Subject: Securonix Cluster Status"   ; echo "Content-Type: text/html"; cat status.html) | 2>/dev/null /usr/sbin/sendmail -t
+[p2731345@ncepnhpmsta0008 ~]$

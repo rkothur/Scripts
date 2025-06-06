@@ -1,0 +1,36 @@
+[kafka@ncepnhfkafa0001 ~]$ cat /home/kafka/scripts/kafka-partition-monitor.ksh
+#!/bin/ksh
+
+##########
+#
+# Description: Script to monitor the kafka partitions and send an email if there any unavailable paritions
+# Written By: Ram
+# Date: Dec 2018
+# Revisions: Dec 2018 Initial Script
+#
+##########
+
+CLUSTER="SDataFlow_Prod"
+ZK_SERVERS="ncepnhfkafa0001.hadoop.charter.com:2181,ncepnhfkafa0002.hadoop.charter.com:2181,ncepnhfkafa0003.hadoop.charter.com:2181/kafka"
+
+##### Do Not Edit Below this line #####
+PATH=$PATH:/usr/hdf/current/kafka-broker/bin/
+EMAIL="svc_itbigdata@charter.com"
+#SEC_EMAIL="C-Farah.Ahmedullah@charter.com,C-Girish.Drabla@charter.com,Sankeerth.Katkam@charter.com,Ramakrishna.Kothur1@charter.com,C-Basil.Kuriakose@charter.com,Manikantha.Manchala@charter.com,SuriBabu.Nuthalapati@charter.com,C-Sekhar.Reddy@charter.com,C-Arshad.Shaikh@charter.com,C-Balram.Sirigadi@charter.com"
+SEC_EMAIL="Farah.Ahmedullah@charter.com,C-Girish.Drabla@charter.com,C-Jino.Jacob@charter.com,Sankeerth.Katkam@charter.com,Ramakrishna.Kothur1@charter.com,C-Basil.Kuriakose@charter.com,C-Satish.Nakka@charter.com,SuriBabu.Nuthalapati@charter.com,C-Sekhar.Reddy@charter.com,C-Balram.Sirigadi@charter.com,C-Vaibhav.Vuppala@charter.com,C-Katamreddy.Yerrakkagari@charter.com"
+#EMAIL="ramakrishna.kothur1@charter.com"
+LOG_FILE="/var/log/kafka/chtr-kafka-monitor.log"
+NOW=$(date +"%Y%m%d-%H%M")
+HSTNAME=$(hostname -f)
+
+OUTPUT=$(kafka-topics.sh --zookeeper $ZK_SERVERS --describe --unavailable-partitions|egrep -v 'captainmarvel|test12345' | wc -l)
+BODY="$NOW - $CLUSTER - No. of unavailable Partitions is $OUTPUT"
+if [ $OUTPUT -eq 0 ]; then
+#    echo "$CLUSTER - $NOW - No of unavailable Partition count is $OUTPUT" >> $LOG_FILE
+    echo "$BODY" >> $LOG_FILE
+else
+    SUBJECT="$CLUSTER - Unavailable Partitions"
+    $(echo $BODY | mailx -s "$SUBJECT" $EMAIL)
+    $(echo $BODY | mailx -s "$SUBJECT" $SEC_EMAIL)
+    echo "$BODY - Email sent" >> $LOG_FILE
+fi

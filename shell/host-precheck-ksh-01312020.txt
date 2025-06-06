@@ -1,0 +1,600 @@
+[svc-bdadmin@ncepnhpmsta0002 scripts]$ cat host-prechecks.ksh
+#!/bin/ksh
+
+###################
+#
+# Script to run the OS prechecks on the remote hosts
+# Written by: Ram
+# Date:
+#
+###################
+
+#### Variables used in the script
+#### Note: Do not modify these variabes
+PATH=/usr/share/centrifydc/bin/:/bin:/usr/bin:/sbin:/usr/sbin:/opt/VRTS/bin:/usr/sbin/hbanyware
+export PATH
+NOW=$(date +"%Y%m%d-%H%M")
+HST=$(hostname -f)
+BOLD=`tput smso`
+OFFBOLD=`tput rmso`;
+OUTDIR="/bigdata/scripts/"
+OUTFILE="${OUTDIR}/host-prechecks-${HST}-${NOW}.txt"
+TAB="\t"
+NEWLN="\n"
+HEADER="############"
+
+##### Change the ansible hosts file if different
+#export ANSIBLE_INVENTORY=/bigdata/scripts/hosts.txt
+
+#====================================
+# Verify if svc-bdadmin is running the script
+#=====================================
+CHUSER=$(whoami)
+if [ "$CHUSER" != "svc-bdadmin" ]
+  then
+    echo
+    echo "Sorry you must run the script as svc-bdadmin user"
+    echo
+    exit 1
+fi
+
+#rm -rf remotehost-prechecks*.txt
+#rm -rf host-prechecks*.txt
+mv remotehost-prechecks*.txt old/
+mv host-prechecks*.txt old/
+
+#====================================
+# Copy the prechecks script to each host, execute it, get the results back
+#=====================================
+
+echo " " | tee -a $OUTFILE
+echo " " | tee -a $OUTFILE
+echo "$HEADER Copying the script to remote hosts and executing it $HEADER" | tee -a $OUTFILE
+for SRVR in `cat hosts.txt |grep -v "\["`
+do
+    echo "$HEADER Working on - $SRVR $HEADER" | tee -a $OUTFILE
+    scp remote-host-prechecks.ksh $SRVR:/bigdata/scripts/ | tee -a $OUTFILE
+    ssh -tq $SRVR "/bigdata/scripts/remote-host-prechecks.ksh" | tee -a $OUTFILE
+    SRVR1=$(echo $SRVR | awk -F"." '{print $1}') | tee -a $OUTFILE
+    scp $SRVR:/bigdata/scripts/remotehost-prechecks-${SRVR1}* . | tee -a $OUTFILE
+done
+
+
+#====================================
+# Read each file and run the checks
+#=====================================
+echo "$HEADER Reading and verifying values from remote hosts $HEADER" | tee -a $OUTFILE
+for FL in `ls remotehost-prechecks*.txt`
+do
+   NODENM=$(echo $FL | awk -F"-" '{print $3}')
+   echo " " | tee -a $OUTFILE
+   echo " " | tee -a $OUTFILE
+   echo "$HEADER Processing - $NODENM $HEADER" | tee -a $OUTFILE
+### Check Time Zone
+   TMZ=$(grep TIMEZ $FL |awk -F": " '{print $2}')
+   if [[ $TMZ == "UTC" ]];
+   then
+      echo "PASS.... Date is set to UTC" | tee -a $OUTFILE
+   else
+      echo "${BOLD}FAIL.... ${OFFBOLD} Date is not set to UTC"|tee -a $OUTFILE
+   fi
+### Check NTP Service
+   NTPSRVC=$(grep NTPS $FL |awk -F": " '{print $3}'| awk '{print $1,$2}')
+   #echo $NTPSRVC
+   if [[ $NTPSRVC == "active (running)" ]];
+   then
+     echo "PASS.... NTP Service is running" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} NTP Service is not running"|tee -a $OUTFILE
+   fi
+### DNS servers
+   MASTERDNS=$(cat /etc/resolv.conf |grep nameserver|awk '{print $2}'|xargs)
+   HOSTDNS=$(grep DNSSRVR $FL |awk -F": " '{print $2}')
+   if [[ $MASTERDNS == $HOSTDNS ]];
+   then
+     echo "PASS.... DNS entries match with Ambari Server" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} DNS entries does not match with Ambari Server (Ambari - $MASTERDNS, Host - $HOSTDNS "|tee -a $OUTFILE
+   fi
+### DNS enabled
+   DNSEN=$(grep DNSENABLED $FL |awk -F": " '{print $2}')
+   if [[ $DNSEN == "files dns" ]];
+   then
+     echo "PASS.... DNS is enabled" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} DNS is not enabled"|tee -a $OUTFILE
+   fi
+### wget RPM
+   WGETRPM=$(grep RPM-wget $FL |awk -F": " '{print $2}'|awk -F"-" '{print $1}')
+   if [[ $WGETRPM == "wget" ]];
+   then
+     echo "PASS.... wget RPM is installed" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} wget RPM is not installed"|tee -a $OUTFILE
+   fi
+### krb5-workstation RPM
+   KRB5RPM=$(grep RPM-krb5-workstation $FL |awk -F": " '{print $2}'|awk -F"-" '{print $1,"-",$2}')
+   if [[ $KRB5RPM == "krb5 - workstation" ]];
+   then
+     echo "PASS.... krb5-workstation RPM is installed" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} krb5-workstationt RPM is not installed"|tee -a $OUTFILE
+   fi
+### openssl RPM
+   OPENSSLRPM=$(grep RPM-openssl $FL |awk -F": " '{print $2}'|awk -F"-" '{print $1}')
+   if [[ $OPENSSLRPM == "openssl" ]];
+   then
+     echo "PASS.... openssl RPM is installed" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} openssl RPM is not installed"|tee -a $OUTFILE
+   fi
+### openldap RPM
+   LDAPRPM=$(grep RPM-openldap $FL |awk -F": " '{print $2}'|awk -F"-" '{print $1}')
+   if [[ $LDAPRPM == "openldap" ]];
+   then
+     echo "PASS.... openldap RPM is installed" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} openldap RPM is not installed"|tee -a $OUTFILE
+   fi
+### mlocate RPM
+   LOCRPM=$(grep RPM-mlocate $FL |awk -F": " '{print $2}'|awk -F"-" '{print $1}')
+   if [[ $LOCRPM == "mlocate" ]];
+   then
+     echo "PASS.... mlocate RPM is installed" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} mlocate RPM is not installed"|tee -a $OUTFILE
+   fi
+### bind-utils RPM
+   BINDRPM=$(grep RPM-bind-utils $FL |awk -F": " '{print $2}'|awk -F"-" '{print $1,"-",$2}')
+   if [[ $BINDRPM == "bind - utils" ]];
+   then
+     echo "PASS.... bind-utils RPM is installed" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} bind-utils RPM is not installed"|tee -a $OUTFILE
+   fi
+### Check Centrify Service
+   CENTSRVC=$(grep CENTRIFYS $FL |awk -F": " '{print $3}'| awk '{print $1,$2}')
+   #echo $NTPSRVC
+   if [[ $CENTSRVC == "active (running)" ]];
+   then
+     echo "PASS.... Centrify Service is running" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} Centrify Service is not running"|tee -a $OUTFILE
+   fi
+### Check Centrify User
+   CENTU=$(grep CENTRIFYU $FL |awk -F": " '{print $2}'| awk -F":" '{print $1}')
+   if [[ $CENTU == "p2731345" ]];
+   then
+     echo "PASS.... Centrify User is Mapped" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} Centrify User is not Mapped"|tee -a $OUTFILE
+   fi
+### Check INET6
+   INET=$(grep INET6 $FL |awk -F": " '{print $2}')
+   if [[ $INET6 == "" ]];
+   then
+     echo "PASS.... Inet6 is disabled" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} Inet6 is not disabled"|tee -a $OUTFILE
+   fi
+### Check INET6 in hosts file
+   INET6_HOST=$(grep HOST_INT6 $FL |awk -F": " '{print $2}'|awk '{print $1}')
+   if [[ $INET6_HOST == "#::1" ]];
+   then
+     echo "PASS.... Inet6 is disabled in hosts file" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} Inet6 is not disabled in hosts file"|tee -a $OUTFILE
+   fi
+### Check SELINUX
+   SELIN=$(grep SELINUX $FL |awk -F": " '{print $2}')
+   if [[ $SELIN == "Disabled" ]];
+   then
+     echo "PASS.... SELINUX is disabled" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} SELINUX is not disabled"|tee -a $OUTFILE
+   fi
+### Transparent Huge Pages
+   THP1=$(grep TSP1 $FL |awk -F": " '{print $2}'| awk '{print $3}')
+   if [[ $THP1 == "[never]" ]];
+   then
+     echo "PASS.... THP(enabled) is disabled" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} THP(enabled) is not disabled"|tee -a $OUTFILE
+   fi
+   THP2=$(grep TSP2 $FL |awk -F": " '{print $2}'| awk '{print $3}')
+   if [[ $THP2 == "[never]" ]];
+   then
+     echo "PASS.... THP(defrag) is disabled" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} THP(defrag) is not disabled"|tee -a $OUTFILE
+   fi
+### Check HTTP SPN
+   SPN=$(grep HTTPSPN $FL |awk -F": " '{print $2}')
+   if [[ $SPN == "" ]];
+   then
+     echo "PASS.... HTTP SPN is not present" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} HTTP SPN is present"|tee -a $OUTFILE
+   fi
+### SYSCTL Settings
+SWAPPINESS=1
+IPV6SYS=1
+DIRTYRATIO=80
+DIRTYBACK=5
+WMEM_DEF=212992
+RMEM_DEF=212992
+WMEM_MAX=2097152
+RMEM_MAX=2097152
+TCP_WMEM="4096 65536 4194304"
+TCP_RMEM="4096 87380 6291456"
+WIN_SCALE=1
+SYN_BACKLOG=2048
+MAX_BACKLOG=2000
+SOMAX=8192
+   SWAPPI=$(grep vm.swappiness $FL | awk -F" = " '{print $2}')
+   if [[ $SWAPPI == $SWAPPINESS ]];
+   then
+     echo "PASS.... vm.swappiness" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} vm.swappiness"|tee -a $OUTFILE
+   fi
+   IPV6_ALL=$(grep net.ipv6.conf.all.disable_ipv6 $FL | awk -F" = " '{print $2}')
+   if [[ $IPV6_ALL == $IPV6SYS ]];
+   then
+     echo "PASS.... net.ipv6.conf.all.disable_ipv6" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} net.ipv6.conf.all.disable_ipv6"|tee -a $OUTFILE
+   fi
+   IPV6_DEF=$(grep net.ipv6.conf.default.disable_ipv6 $FL | awk -F" = " '{print $2}')
+   if [[ $IPV6_DEF == $IPV6SYS ]];
+   then
+     echo "PASS.... net.ipv6.conf.default.disable_ipv6" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} net.ipv6.conf.default.disable_ipv6"|tee -a $OUTFILE
+   fi
+   DIRTY=$(grep vm.dirty_ratio $FL | awk -F" = " '{print $2}')
+   if [[ $DIRTY == $DIRTYRATIO ]];
+   then
+     echo "PASS.... vm.dirty_ratio" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} vm.dirty_ratio"|tee -a $OUTFILE
+   fi
+   DIRTYBG=$(grep vm.dirty_background_ratio $FL | awk -F" = " '{print $2}')
+   if [[ $DIRTYBG == $DIRTYBACK ]];
+   then
+     echo "PASS.... vm.dirty_background_ratio" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} vm.dirty_background_ratio"|tee -a $OUTFILE
+   fi
+   WIN_SCL=$(grep net.ipv4.tcp_window_scaling $FL | awk -F" = " '{print $2}')
+   if [[ $WIN_SCL == $WIN_SCALE ]];
+   then
+     echo "PASS.... net.ipv4.tcp_window_scaling" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} net.ipv4.tcp_window_scaling"|tee -a $OUTFILE
+   fi
+   DEF_WMEM=$(grep net.core.wmem_default $FL | awk -F" = " '{print $2}')
+   if [[ $DEF_WMEM == $WMEM_DEF ]];
+   then
+     echo "PASS.... net.core.wmem_default" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} net.core.wmem_default"|tee -a $OUTFILE
+   fi
+   DEF_RMEM=$(grep net.core.rmem_default $FL | awk -F" = " '{print $2}')
+   if [[ $DEF_RMEM == $RMEM_DEF ]];
+   then
+     echo "PASS.... net.core.rmem_default" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} net.core.rmem_default"|tee -a $OUTFILE
+   fi
+   MAX_WMEM=$(grep net.core.wmem_max $FL | awk -F" = " '{print $2}')
+   if [[ $MAX_WMEM == $WMEM_MAX ]];
+   then
+     echo "PASS.... net.core.wmem_max" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} net.core.wmem_max"|tee -a $OUTFILE
+   fi
+   MAX_RMEM=$(grep net.core.rmem_max $FL | awk -F" = " '{print $2}')
+   if [[ $MAX_RMEM == $RMEM_MAX ]];
+   then
+     echo "PASS.... net.core.rmem_max" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} net.core.rmem_max"|tee -a $OUTFILE
+   fi
+   SYN_BACK=$(grep net.ipv4.tcp_max_syn_backlog $FL | awk -F" = " '{print $2}')
+   if [[ $SYN_BACK == $SYN_BACKLOG ]];
+   then
+     echo "PASS.... net.ipv4.tcp_max_syn_backlog" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} net.ipv4.tcp_max_syn_backlog"|tee -a $OUTFILE
+   fi
+   MAX_BACK=$(grep net.core.netdev_max_backlog $FL | awk -F" = " '{print $2}')
+   if [[ $MAX_BACK == $MAX_BACKLOG ]];
+   then
+     echo "PASS.... net.core.netdev_max_backlog" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} net.core.netdev_max_backlog"|tee -a $OUTFILE
+   fi
+   MAX_SO=$(grep net.core.somaxconn $FL | awk -F" = " '{print $2}')
+   if [[ $MAX_SO == $SOMAX ]];
+   then
+     echo "PASS.... net.core.somaxconn" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} net.core.somaxconn"|tee -a $OUTFILE
+   fi
+   TCP_WMEM_V1=$(echo $TCP_WMEM |awk '{print $1}')
+   TCP_WMEM_V2=$(echo $TCP_WMEM |awk '{print $2}')
+   TCP_WMEM_V3=$(echo $TCP_WMEM |awk '{print $3}')
+   WMEM_TCP=$(grep net.ipv4.tcp_wmem $FL | awk -F" = " '{print $2}')
+   WMEM_TCP_V1=$(echo $WMEM_TCP |awk '{print $1}')
+   WMEM_TCP_V2=$(echo $WMEM_TCP |awk '{print $2}')
+   WMEM_TCP_V3=$(echo $WMEM_TCP |awk '{print $3}')
+   if [[ $WMEM_TCP_V1 == $TCP_WMEM_V1 ]];
+   then
+     echo "PASS.... net.ipv4.tcp_wmem - Value1" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} net.ipv4.tcp_wmem - Value1"|tee -a $OUTFILE
+   fi
+   if [[ $WMEM_TCP_V2 == $TCP_WMEM_V2 ]];
+   then
+     echo "PASS.... net.ipv4.tcp_wmem - Value2" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} net.ipv4.tcp_wmem - Value2"|tee -a $OUTFILE
+   fi
+   if [[ $WMEM_TCP_V3 == $TCP_WMEM_V3 ]];
+   then
+     echo "PASS.... net.ipv4.tcp_wmem - Value3" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} net.ipv4.tcp_wmem - Value3"|tee -a $OUTFILE
+   fi
+   TCP_RMEM_V1=$(echo $TCP_RMEM |awk '{print $1}')
+   TCP_RMEM_V2=$(echo $TCP_RMEM |awk '{print $2}')
+   TCP_RMEM_V3=$(echo $TCP_RMEM |awk '{print $3}')
+   RMEM_TCP=$(grep net.ipv4.tcp_rmem $FL | awk -F" = " '{print $2}')
+   RMEM_TCP_V1=$(echo $RMEM_TCP |awk '{print $1}')
+   RMEM_TCP_V2=$(echo $RMEM_TCP |awk '{print $2}')
+   RMEM_TCP_V3=$(echo $RMEM_TCP |awk '{print $3}')
+   if [[ $RMEM_TCP_V1 == $TCP_RMEM_V1 ]];
+   then
+     echo "PASS.... net.ipv4.tcp_rmem - Value1" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} net.ipv4.tcp_rmem - Value1"|tee -a $OUTFILE
+   fi
+   if [[ $RMEM_TCP_V2 == $TCP_RMEM_V2 ]];
+   then
+     echo "PASS.... net.ipv4.tcp_rmem - Value2" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} net.ipv4.tcp_rmem - Value2"|tee -a $OUTFILE
+   fi
+   if [[ $RMEM_TCP_V3 == $TCP_RMEM_V3 ]];
+   then
+     echo "PASS.... net.ipv4.tcp_rmem - Value3" | tee -a $OUTFILE
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} net.ipv4.tcp_rmem - Value3"|tee -a $OUTFILE
+   fi
+### Check Mount Points
+   cat $FL | egrep "\/data|\/hbase" > /dev/null
+   if [ $? -ne 0 ];
+   then
+      echo "${BOLD}FAIL.... ${OFFBOLD} No /data or /hbase Mounts found" |tee -a $OUTFILE
+   else
+      COUNT=0
+      awk '/Mount Points:/{flag=1;next}/FS Type:/{flag=0} flag' $FL | while read -r line
+      do
+         (( COUNT = COUNT + 1 ))
+      done
+      echo "PASS.... Found ${BOLD}$COUNT ${OFFBOLD} disks mounted on /data or /hbase" |tee -a $OUTFILE
+   fi
+   ROLE=$(grep ROLE $FL |awk -F": " '{print $2}')
+   if [[ "${ROLE}" == "Edge" ]];
+   then
+          FS_COUNT=3
+          FS_DISKSIZE=1.9T
+   fi
+   if [[ "${ROLE}" == "Data" ]];
+   then
+          FS_COUNT=12
+          FS_DISKSIZE=3.7T
+   fi
+   if [[ "${ROLE}" == "Master" ]];
+   then
+          FS_COUNT=3
+          FS_DISKSIZE=1.9T
+   fi
+   if [[ "${ROLE}" == "Name" ]];
+   then
+          FS_COUNT=3
+          FS_DISKSIZE=3.7T
+   fi
+
+   if [[ "${ROLE}" == "Kafka" ]];
+   then
+          FS_COUNT=6
+          FS_DISKSIZE=1.8T
+   fi
+
+   if [[ "${ROLE}" == "HBase" ]];
+   then
+          FS_COUNT=10
+          FS_DISKSIZE=894G
+   fi
+   if [[ "${ROLE}" == "Nifi" ]];
+   then
+          FS_COUNT=3
+          FS_DISKSIZE=1.9T
+   fi
+   awk '/Mount Points:/{flag=1;next}/FS Type:/{flag=0} flag' $FL |egrep "\/data|\/hbase" | while read -r line
+   do
+     FS=$(echo $line | awk '{print $6}')
+     FS_SIZE=$(echo $line | awk '{print $2}')
+     if [[ $FS_SIZE == $FS_DISKSIZE ]];
+     then
+       echo "PASS.... $FS - Expected: $FS_DISKSIZE - Actual: $FS_SIZE Correct Size" | tee -a $OUTFILE
+     else
+       echo "${BOLD}FAIL.... ${OFFBOLD} $FS - Expected: $FS_DISKSIZE - Actual: $FS_SIZE - Not Correct Size" |tee -a $OUTFILE
+     fi
+   done
+### Check Mount Types
+   #cat $FL | egrep "\/data|\/hbase" > /dev/null
+   awk '/FS Type:/{flag=1;next}/NTPS:/{flag=0} flag' $FL |egrep "\/data|\/hbase" > /dev/null
+   if [ $? -ne 0 ];
+   then
+      echo "${BOLD}FAIL.... ${OFFBOLD} No /data or /hbase Mounts found to check the FS Type"
+   else
+      awk '/FS Type:/{flag=1;next}/NTPS:/{flag=0} flag' $FL |egrep "\/data|\/hbase" | while read -r line
+      do
+         #echo "$line"
+         FS=$(echo $line | awk '{print $3}')
+         FSTYPE=$(echo $line | awk '{print $5}')
+         #NOATIME=$(echo $line | awk -F"," '{print $2}')
+         #echo $FS,$FSTYPE,$NOATIME
+         if [[ $FSTYPE == "xfs" ]];
+         then
+            echo "PASS.... File System type for $FS is xfs" | tee -a $OUTFILE
+         else
+            echo "${BOLD}FAIL.... ${OFFBOLD} File System type for $FS is not xfs"|tee -a $OUTFILE
+         fi
+         echo $line |grep noatime > /dev/null
+         if [ $? -ne 0 ];
+         then
+             echo "${BOLD}FAIL.... ${OFFBOLD} noatime value not set for $FS"  |tee -a $OUTFILE
+         else
+             echo "PASS.... ${OFFBOLD} noatime set for $FS" |tee -a $OUTFILE
+         fi
+
+         #if [[ $NOATIME == "noatime" ]];
+         #then
+         #   echo "PASS.... NOATIME flag set for $FS" | tee -a $OUTFILE
+         #else
+         #   echo "${BOLD}FAIL.... ${OFFBOLD} NOATIME flag not set for $FS"|tee -a $OUTFILE
+         #fi
+      done
+   fi
+
+### BigData Mount Point
+   BDSIZE=600G
+   BD=$(grep BIGDATA_FS $FL | awk -F": " '{print $2}')
+   if [[ $BD == "Exists" ]];
+   then
+     echo "Pass.... /bigdata Mount Point" | tee -a $OUTFILE
+     BIGDATA_SIZE=$(grep BIGDATA_SIZE $FL | awk -F": " '{print $2}')
+     if [[ $BIGDATA_SIZE == $BDSIZE ]];
+     then
+        echo "Pass.... /bigdata Size" | tee -a $OUTFILE
+     else
+        echo "${BOLD}FAIL.... ${OFFBOLD} /bigdata Size - Expected $BDSIZE but see $BIGDATA_SIZE"|tee -a $OUTFILE
+     fi
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} /bigdata Mount Point does not exist" | tee -a $OUTFILE
+   fi
+
+### /var/log Mount Point
+   VARLOGSIZE=600G
+   VARLOG=$(grep VARLOG_FS $FL | awk -F": " '{print $2}')
+   #echo "====$VARLOG===="
+   if [[ $VARLOG == "Exists" ]];
+   then
+     echo "Pass.... /var/log Mount Point" | tee -a $OUTFILE
+     VARLOG_SIZE=$(grep VARLOG_SIZE $FL | awk -F": " '{print $2}')
+     if [[ $VARLOG_SIZE == $VARLOGSIZE ]];
+     then
+        echo "Pass.... /var/log Size" | tee -a $OUTFILE
+     else
+        echo "${BOLD}FAIL.... ${OFFBOLD} /var/log Size - Expected $VARLOGSIZE but see $VARLOG_SIZE"|tee -a $OUTFILE
+     fi
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} /var/log Mount Point does not exist" | tee -a $OUTFILE
+   fi
+
+### /usr/hdp(hdf) Mount Point
+if [ $ROLE == "Kafka" ] || [ $ROLE = "Nifi" ]
+then
+   HDFSIZE=100G
+   HDF_FS=$(grep HDF_FS $FL |awk -F": " '{print $2}')
+   if [[ $HDF_FS == 'Exists' ]];
+   then
+     echo "Pass.... /usr/hdf Mount Point" | tee -a $OUTFILE
+     HDF_SIZE=$(grep HDF_SIZE $FL | awk -F": " '{print $2}')
+     if [[ $HDF_SIZE == $HDFSIZE ]];
+     then
+        echo "Pass.... /usr/hdf Size" | tee -a $OUTFILE
+     else
+        echo "${BOLD}FAIL.... ${OFFBOLD} /usr/hdf Size - Expected $HDFSIZE but see $HDF_SIZE"|tee -a $OUTFILE
+     fi
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} /usr/hdf Mount Point does not exist" | tee -a $OUTFILE
+   fi
+else
+   HDPSIZE=100G
+   HDP_FS=$(grep HDP_FS $FL |awk -F": " '{print $2}')
+   if [[ $HDP_FS == 'Exists' ]];
+   then
+     echo "Pass.... /usr/hdp Mount Point" | tee -a $OUTFILE
+     HDP_SIZE=$(grep HDP_SIZE $FL | awk -F": " '{print $2}')
+     if [[ $HDP_SIZE == $HDPSIZE ]];
+     then
+        echo "Pass.... /usr/hdp Size" | tee -a $OUTFILE
+     else
+        echo "${BOLD}FAIL.... ${OFFBOLD} /usr/hdp Size - Expected $HDPSIZE but see $HDP_SIZE"|tee -a $OUTFILE
+     fi
+   else
+     echo "${BOLD}FAIL.... ${OFFBOLD} /usr/hdp Mount Point does not exist" | tee -a $OUTFILE
+   fi
+fi
+
+
+### Disable NTP in Centrify
+   CENT_NTP_PARA=$(grep CENTRIFY_NTP $FL | awk -F": " '{print $2}')
+   CENT_NTP_VAL=$(grep CENTRIFY_NTP $FL | awk -F": " '{print $3}')
+   if [[ $CENT_NTP_PARA == "NOTSET" ]];
+   then
+     echo "${BOLD}FAIL.... ${OFFBOLD} Disable NTP in Centrify value not set in file"|tee -a $OUTFILE
+   else
+     if [[ $CENT_NTP_VAL == "false" ]];
+     then
+       echo "Pass.... Disable NTP in Centrify" | tee -a $OUTFILE
+     else
+       echo "${BOLD}FAIL.... ${OFFBOLD} Disable NTP in Centrify"|tee -a $OUTFILE
+     fi
+   fi
+
+### CPU Cores and Memory
+   ROLE=$(grep ROLE $FL |awk -F": " '{print $2}')
+   CORES=48
+   MEMTOTAL=263858176
+   CORE=$(grep CPUCORES $FL | awk -F": " '{print $2}')
+   if [[ $CORE == $CORES ]];
+   then
+      echo "Pass.... No. of CPUs - EDG/WRK/MST/NAM - 48, HBS - 64, KAF - 32, NIF - 16" | tee -a $OUTFILE
+   else
+      echo "${BOLD}FAIL.... ${OFFBOLD} No. of CPUs - Expected $CORES but see $CORE - EDG/WRK/MST/NAM - 48, HBS - 64, KAF - 32, NIF - 16"|tee -a $OUTFILE
+   fi
+   MEMTOT=$(grep MEMTOTALKB $FL | awk -F": " '{print $2}')
+   if [[ $MEMTOT == $MEMTOTAL ]];
+   then
+      echo "Pass.... Memory in KB - EDG/WRK/MST/NAM/HBS - 263858176, KAF/NIF - 196509596" | tee -a $OUTFILE
+   else
+      echo "${BOLD}FAIL.... ${OFFBOLD} Memory in KB - Expected $MEMTOTAL but see $MEMTOT - EDG/WRK/MST/NAM/HBS - 263858176, KAF/NIF - 196509596"|tee -a $OUTFILE
+   fi
+
+### Redhat Version
+  OSVERSION=$(grep OSVER $FL | awk -F": " '{print $2}')
+  if [[ $OSVERSION =~ "7." ]];
+  then
+     echo "Pass.... Redhat version is 7.x" | tee -a $OUTFILE
+  else
+     echo "${BOLD}FAIL.... ${OFFBOLD} Redhat version is not 7.x"|tee -a $OUTFILE
+  fi
+
+### Yum Repo
+  RHN_REGISTER=$(grep RHN_REG $FL | awk -F": " '{print $2}')
+  if [[ $RHN_REGISTER == "Current" ]];
+  then
+    echo "Pass.... YUM Repolist" | tee -a $OUTFILE
+  else
+    echo "${BOLD}FAIL.... ${OFFBOLD} YUM Repolist"|tee -a $OUTFILE
+  fi
+
+done
+
+[svc-bdadmin@ncepnhpmsta0002 scripts]$

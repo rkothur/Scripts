@@ -1,0 +1,61 @@
+[svc-bdadmin@ncepnhfkafa0001 ~]$ cat /bigdata/scripts/execute-host-alerts.bash
+#!/bin/bash
+
+for i in `cat /bigdata/scripts/sdfprod.out`
+do
+    ssh -tq $i "/bigdata/scripts/host-alerts.bash"
+done
+[svc-bdadmin@ncepnhfkafa0001 ~]$ cat /bigdata/scripts/host-alerts.bash
+#!/bin/bash
+
+
+###########################
+# Description: Script to Check cpu, memory and disk allocation
+# Author: Copied and modified from internet by Ram
+# Date: Dec 2020
+###########################
+
+EMAIL="svc_ITBigData@charter.com"
+now=`date -u -d"+8 hour" +'%Y-%m-%d %H:%M:%S'`
+#cpu use threshold
+cpu_warn='95'
+ #mem idle threshold
+mem_warn='1000'
+ #disk use threshold
+disk_warn='85'
+#---cpu
+item_cpu () {
+cpu_idle=`top -b -n 1 | grep Cpu | awk '{print $8}'|cut -f 1 -d "."`
+cpu_use=`expr 100 - $cpu_idle`
+ echo "$now current cpu utilization rate of $cpu_use" >> /bigdata/scripts/chtr-cpu.log
+if [ $cpu_use -gt $cpu_warn ]
+    then
+        echo "Critical!!! CPU usage on $(hostname) is $cpu_use % at $(date)"| mail -s "Critical!!! CPU usage on $(hostname) is $cpu_use % at $(date)" $EMAIL
+fi
+}
+#---mem
+item_mem () {
+ #MB units
+mem_free=`free -m | grep "Mem" | awk '{print $4+$6}'`
+ echo "$now the current memory space remaining ${mem_free} MB" >> /bigdata/scripts/chtr-mem.log
+if [ $mem_free -lt $mem_warn  ]
+    then
+        echo "Critical!!! Memory usage on $(hostname) is $mem_free MB at $(date)"| mail -s "Critical!!! Memory usage on $(hostname) is $mem_free MB at $(date)" $EMAIL
+fi
+}
+#---disk
+item_disk () {
+df -Ph | grep -vE '^Filesystem|tmpfs|cdrom' | awk '{ print $5,$6 }' | while read output;
+do
+  used=$(echo $output | awk '{print $1}' | sed s/%//g)
+  partition=$(echo $output | awk '{print $2}')
+  if [ $used -ge $disk_warn ]; then
+  echo "$partition is $used " >> /bigdata/scripts/chtr-disk.log
+  echo "Critical!!! The partition \"$partition\" on $(hostname) has used $used% at $(date)" | mail -s "Critical!!! Disk Space Alert: $used% Used On $(hostname)" $EMAIL
+  fi
+done
+}
+item_cpu
+item_mem
+item_disk
+[svc-bdadmin@ncepnhfkafa0001 ~]$

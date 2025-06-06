@@ -1,0 +1,1 @@
+python sso-aws.py -s svc-bd-itvdlapp-prod@vdl-edgenode-new -p spectrum-data-lake-hybrid-cloud -d 8157

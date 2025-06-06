@@ -1,0 +1,149 @@
+LINUX-kstluwk06 $ cat get-hadoop-nodes.ksh
+#!/bin/bash
+
+#curl -k -u p2731345 -H "X-Requested-By: ambari" -X GET https://ncednhpmsta0002.devhadoop.charter.com:8443/api/v1/clusters/SDataLake_DEV/hosts/ |grep host_name |awk -F: '{print $2}'|sed 's/\"//g'
+
+read -p "Enter Username: " USER
+read -s -p "Enter Password: " PASSWD
+echo
+read -p "Enter Cluster (valid - sdldev, sdluat, sdlprod, sdldr, sdfdev, sdfuat, sdfprod, sdfdr, voddev, vodprod, voduat, securonixprod, xmbidr, xmbidev, xmbiprod, edgecacheuat): " CLUSTER
+
+if [[ $CLUSTER == sdldev ]];
+then
+   CLUSTERNAME="SDataLake_DEV"
+   CLUSTERHOST="ncednhpmsta0002.devhadoop.charter.com"
+   CLUSTERPORT=8443
+   CLUSTERPATH="/api/v1/clusters/${CLUSTERNAME}/hosts"
+fi
+
+if [[ $CLUSTER == sdluat ]];
+then
+   CLUSTERNAME="SDataLake_UAT"
+   CLUSTERHOST="ncwunhpmsta0002.hadoop.charter.com"
+   CLUSTERPORT=8443
+   CLUSTERPATH="/api/v1/clusters/${CLUSTERNAME}/hosts"
+fi
+
+if [[ $CLUSTER == sdlprod ]];
+then
+   CLUSTERNAME="SDataLake_PROD"
+   CLUSTERHOST="ncepnhpmsta0002.hadoop.charter.com"
+   CLUSTERPORT=8443
+   CLUSTERPATH="/api/v1/clusters/${CLUSTERNAME}/hosts"
+fi
+
+if [[ $CLUSTER == sdldr ]];
+then
+   CLUSTERNAME="SDataLake_DR"
+   CLUSTERHOST="ncwrnhpmsta0002.hadoop.charter.com"
+   CLUSTERPORT=8443
+   CLUSTERPATH="/api/v1/clusters/${CLUSTERNAME}/hosts"
+fi
+
+if [[ $CLUSTER == sdfdev ]];
+then
+   CLUSTERNAME="SDataFlow_DEV"
+   CLUSTERHOST="ncednhfkafa0001.devhadoop.charter.com"
+   CLUSTERPORT=8443
+   CLUSTERPATH="/api/v1/clusters/${CLUSTERNAME}/hosts"
+fi
+
+if [[ $CLUSTER == sdfuat ]];
+then
+   CLUSTERNAME="SDataFlow_UAT"
+   CLUSTERHOST="ncwunhfkafa0001.hadoop.charter.com"
+   CLUSTERPORT=8443
+   CLUSTERPATH="/api/v1/clusters/${CLUSTERNAME}/hosts"
+fi
+
+if [[ $CLUSTER == sdfprod ]];
+then
+   CLUSTERNAME="SDataFlow_PROD"
+   CLUSTERHOST="ncepnhfkafa0001.hadoop.charter.com"
+   CLUSTERPORT=8443
+   CLUSTERPATH="/api/v1/clusters/${CLUSTERNAME}/hosts"
+fi
+
+if [[ $CLUSTER == sdfdr ]];
+then
+   CLUSTERNAME="SDataFlow_DR"
+   CLUSTERHOST="ncwrnhfkafa0001.hadoop.charter.com"
+   CLUSTERPORT=8443
+   CLUSTERPATH="/api/v1/clusters/${CLUSTERNAME}/hosts"
+fi
+
+if [[ $CLUSTER == voddev ]];
+then
+   CLUSTERNAME="VOD_DEV_HDF"
+   CLUSTERHOST="vm0dnhadita0001.devhadoop.charter.com"
+   CLUSTERPORT=8443
+   CLUSTERPATH="/api/v1/clusters/${CLUSTERNAME}/hosts"
+fi
+
+if [[ $CLUSTER == vodprod ]];
+then
+   CLUSTERNAME="VOD_HDF"
+   CLUSTERHOST="ncepnvodkad0001.hadoop.charter.com"
+   CLUSTERPORT=8443
+   CLUSTERPATH="/api/v1/clusters/${CLUSTERNAME}/hosts"
+fi
+
+if [[ $CLUSTER == voduat ]];
+then
+   CLUSTERNAME="VOD_DR_HDF"
+   CLUSTERHOST="ncwrnvodkad0001.hadoop.charter.com"
+   CLUSTERPORT=8443
+   CLUSTERPATH="/api/v1/clusters/${CLUSTERNAME}/hosts"
+fi
+
+if [[ $CLUSTER == securonixprod ]];
+then
+   CLUSTERNAME="SECEMCDataLake_PROD"
+   CLUSTERHOST="ncepnhpmsta0008.hadoop.charter.com"
+   CLUSTERPORT=8443
+   CLUSTERPATH="/api/v1/clusters/${CLUSTERNAME}/hosts"
+fi
+
+if [[ $CLUSTER == xmbidr ]];
+then
+   CLUSTERNAME="XMBI-DR"
+   CLUSTERHOST="ncwrnmomsta0001.hadoop.charter.com"
+   CLUSTERPORT=7183
+   CLUSTERPATH="/api/v1/hosts"
+fi
+
+if [[ $CLUSTER == xmbidev ]];
+then
+   CLUSTERNAME="Spectrum DXMBI"
+   CLUSTERHOST="ncednmonama0001.devhadoop.charter.com"
+   CLUSTERPORT=7183
+   CLUSTERPATH="/api/v1/hosts"
+fi
+
+if [[ $CLUSTER == xmbiprod ]];
+then
+   CLUSTERNAME="Spectrum PXMBI"
+   CLUSTERHOST="ncepnmomsta0001.hadoop.charter.com"
+   CLUSTERPORT=7183
+   CLUSTERPATH="/api/v1/hosts"
+fi
+
+if [[ $CLUSTER == edgecacheuat ]];
+then
+   CLUSTERNAME="UAT_ECUCDH"
+   CLUSTERHOST="hadpedge01.hadoop.charter.com"
+   CLUSTERPORT=7183
+   CLUSTERPATH="/api/v1/hosts"
+fi
+
+
+
+#echo $CLUSTERNAME
+#echo $CLUSTERHOST
+
+curl -k -u ${USER}:${PASSWD} -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}${CLUSTERPATH} |egrep 'host_name|hostname' |awk -F: '{print $2}'|sed 's/\"//g'| sed 's/,//g' > ${CLUSTER}.out
+
+
+#curl -k -u p2731345 -X GET https://ncwrnmomsta0001.hadoop.charter.com:7183/api/v1/hosts|grep hostname|awk -F" : " '{print $2}'
+
+LINUX-kstluwk06 $

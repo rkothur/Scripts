@@ -1,0 +1,34 @@
+[e731345@hdpdedge02 ~]$ cat queues.ksh
+#!/bin/ksh
+
+############
+#
+# Script to display all queues and queue allocations
+#
+###########
+
+QUEUE_FILE="/etc/hadoop/conf/capacity-scheduler.xml"
+QUEUES=$(grep -A1 yarn.scheduler.capacity.root.queues $QUEUE_FILE |tail -1|sed 's/<value>//'|sed 's/<\/value>//')
+echo "Configured Queues - $QUEUES"
+for QUEUE in `echo $QUEUES|tr ',' ' '`
+do
+   QUEUE_CAPACITY=$(grep -A1 yarn.scheduler.capacity.root.$QUEUE.capacity $QUEUE_FILE |tail -1 |sed 's/<value>//'|sed 's/<\/value>//')
+   printf "%-15s(%2d\%)%5s" "$QUEUE" "$QUEUE_CAPACITY" " => "
+   SUBQUEUES=$(grep -A1 yarn.scheduler.capacity.root.$QUEUE.queues $QUEUE_FILE |tail -1 |sed 's/<value>//'|sed 's/<\/value>//')
+   for SUBQUEUE in `echo $SUBQUEUES|tr ',' ' '`
+   do
+      SUBQUEUE_CAP=$(grep -A1 yarn.scheduler.capacity.root.$QUEUE.$SUBQUEUE.capacity $QUEUE_FILE |tail -1 |sed 's/<value>//'|sed 's/<\/value>//')
+      printf "%-10s(%2d\%) " "$SUBQUEUE" "$SUBQUEUE_CAP"
+   done
+   echo " "
+done
+[e731345@hdpdedge02 ~]$ ./queues.ksh
+Configured Queues -       BI,IT,Spectrum_Reach,XDW,default,tda
+BI             (10%)  => bi_adhoc  (20%) bi_batch  (80%)
+IT             (50%)  => it_adhoc  (20%) it_batch  (80%)
+Spectrum_Reach ( 5%)  => sr_adhoc  (100%)
+XDW            (15%)  => xdw_batch (100%)
+default        ( 5%)  =>
+tda            (15%)  => tda_adhoc (35%) tda_batch (65%)
+[e731345@hdpdedge02 ~]$
+

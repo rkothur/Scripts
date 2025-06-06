@@ -1,0 +1,189 @@
+CDP Cluster alerts summary email
+
+LINUX-kstluwk06 $ cat /home/rkothur/get-cluster-alerts.ksh
+#!/bin/bash
+
+CLDR_OUTFILE="$HOME/cldr-alerts.out"
+CLDR_HOSTFILE="$HOME/cldr-hosts.out"
+#EMAIL="ramakrishna.kothur1@charter.com"
+EMAIL="DL-Corp-IT-BigData-Admins@charter.com"
+NOW=$(date +"%Y-%m-%d %H:%M")
+YEST=$(date --date="-1 day" +"%Y-%m-%d %H:%M")
+
+YESTDAY=$(echo $YEST|sed 's/ /T/'|sed 's/:/%3A/')
+TODAY=$(echo $NOW|sed 's/ /T/'|sed 's/:/%3A/'|sed 's/$/%3B/')
+SUBJECT="Cloudera Clusters Alert Summary - $NOW"
+
+>$CLDR_OUTFILE
+>$CLDR_HOSTFILE
+
+
+######## SMDH Dev
+CLUSTER_HOST="ncednmonama0001.devhadoop.charter.com"
+CLUSTER_PORT="7183"
+CLUSTERNAME="SMDH Dev"
+CLUSTER="SMDH%20Dev"
+CDLR_SVC_API_PATH="/api/v41/clusters/${CLUSTER}/services?view=SUMMARY"
+curl -s -k -n -X GET --header 'Accept: application/json' https://${CLUSTER_HOST}:${CLUSTER_PORT}${CDLR_SVC_API_PATH} |egrep 'displayName|entityStatus'|grep -v SMDH |awk -F: '{print $2}'|sed 's/"//g'|sed 's/,//'|awk 'NR%2{printf "%s ",$0;next;}1'|egrep -v 'GOOD|NONE'|sed 's/  /,/g' >> $CLDR_OUTFILE
+
+#cat $CLDR_OUTFILE
+
+sed -i 's/^ /'"$CLUSTERNAME"',/' $CLDR_OUTFILE
+
+
+######## SMDF Dev
+CLUSTERNAME="SMDF Dev"
+CLUSTER="SMDF%20Dev"
+CDLR_SVC_API_PATH="/api/v41/clusters/${CLUSTER}/services?view=SUMMARY"
+curl -s -k -n -X GET --header 'Accept: application/json' https://${CLUSTER_HOST}:${CLUSTER_PORT}${CDLR_SVC_API_PATH} |egrep 'displayName|entityStatus'|grep -v SMDF |awk -F: '{print $2}'|sed 's/"//g'|sed 's/,//'|awk 'NR%2{printf "%s ",$0;next;}1'|egrep -v 'GOOD|NONE'|sed 's/  /,/g' >> $CLDR_OUTFILE
+
+sed -i '/^ / s/^/'"$CLUSTERNAME"',/' $CLDR_OUTFILE
+
+#cat $CLDR_OUTFILE
+
+######## SMDH Prod
+CLUSTER_HOST="ncepnmomsta0001.hadoop.charter.com"
+CLUSTER_PORT="7183"
+CLUSTERNAME="SMDH Prod"
+CLUSTER="SMDH%20Prod"
+CDLR_SVC_API_PATH="/api/v41/clusters/${CLUSTER}/services?view=SUMMARY"
+curl -s -k -n -X GET --header 'Accept: application/json' https://${CLUSTER_HOST}:${CLUSTER_PORT}${CDLR_SVC_API_PATH} |egrep 'displayName|entityStatus'|grep -v SMDH |awk -F: '{print $2}'|sed 's/"//g'|sed 's/,//'|awk 'NR%2{printf "%s ",$0;next;}1'|egrep -v 'GOOD|NONE'|sed 's/  /,/g' >> $CLDR_OUTFILE
+
+sed -i 's/^ /'"$CLUSTERNAME"',/' $CLDR_OUTFILE
+
+
+######## SMDF Prod
+CLUSTER_HOST="ncepnmomsta0001.hadoop.charter.com"
+CLUSTER_PORT="7183"
+CLUSTERNAME="SMDF Prod"
+CLUSTER="SMDF%20Prod"
+CDLR_SVC_API_PATH="/api/v41/clusters/${CLUSTER}/services?view=SUMMARY"
+curl -s -k -n -X GET --header 'Accept: application/json' https://${CLUSTER_HOST}:${CLUSTER_PORT}${CDLR_SVC_API_PATH} |egrep 'displayName|entityStatus'|grep -v SMDF |awk -F: '{print $2}'|sed 's/"//g'|sed 's/,//'|awk 'NR%2{printf "%s ",$0;next;}1'|egrep -v 'GOOD|NONE'|sed 's/  /,/g' >> $CLDR_OUTFILE
+
+sed -i 's/^ /'"$CLUSTERNAME"',/' $CLDR_OUTFILE
+
+
+######## EdgeCache Data UAT
+CLUSTER_HOST="hadpedge01.hadoop.charter.com"
+CLUSTER_PORT="7183"
+CLUSTERNAME="UAT_ECUCDH"
+#CLUSTER="SMDF%20Prod"
+CLUSTER="UAT_ECUCDH"
+CDLR_SVC_API_PATH="/api/v15/clusters/${CLUSTER}/services?view=SUMMARY"
+curl -s -k -n -X GET --header 'Accept: application/json' https://${CLUSTER_HOST}:${CLUSTER_PORT}${CDLR_SVC_API_PATH} |egrep 'displayName|entityStatus'|grep -v ECUCDH |awk -F: '{print $2}'|sed 's/"//g'|sed 's/,//'|awk 'NR%2{printf "%s ",$0;next;}1'|egrep -v 'GOOD|NONE'|sed 's/  /,/g' >> $CLDR_OUTFILE
+
+sed -i 's/^ /'"$CLUSTERNAME"',/' $CLDR_OUTFILE
+
+
+######## EdgeCache Flow UAT
+CLUSTER_HOST="hadpedge01.hadoop.charter.com"
+CLUSTER_PORT="7183"
+CLUSTERNAME="UAT_ECUKAFKA"
+#CLUSTER="SMDF%20Prod"
+CLUSTER="UAT_ECUKAFKA"
+CDLR_SVC_API_PATH="/api/v15/clusters/${CLUSTER}/services?view=SUMMARY"
+curl -s -k -n -X GET --header 'Accept: application/json' https://${CLUSTER_HOST}:${CLUSTER_PORT}${CDLR_SVC_API_PATH} |egrep 'displayName|entityStatus'|grep -v ECUKAFKA |awk -F: '{print $2}'|sed 's/"//g'|sed 's/,//'|awk 'NR%2{printf "%s ",$0;next;}1'|egrep -v 'GOOD|NONE'|sed 's/  /,/g' >> $CLDR_OUTFILE
+
+sed -i 's/^ /'"$CLUSTERNAME"',/' $CLDR_OUTFILE
+
+######## EdgeCache Data Prod
+CLUSTER_HOST="d03nappp0085.hadoop.charter.com"
+CLUSTER_PORT="7183"
+CLUSTERNAME="PROD_ECCDH"
+#CLUSTER="SMDF%20Prod"
+CLUSTER="PROD_ECCDH"
+CDLR_SVC_API_PATH="/api/v15/clusters/${CLUSTER}/services?view=SUMMARY"
+curl -s -k -n -X GET --header 'Accept: application/json' https://${CLUSTER_HOST}:${CLUSTER_PORT}${CDLR_SVC_API_PATH} |egrep 'displayName|entityStatus'|grep -v ECCDH |awk -F: '{print $2}'|sed 's/"//g'|sed 's/,//'|awk 'NR%2{printf "%s ",$0;next;}1'|egrep -v 'GOOD|NONE'|sed 's/  /,/g' >> $CLDR_OUTFILE
+
+sed -i 's/^ /'"$CLUSTERNAME"',/' $CLDR_OUTFILE
+
+
+######## EdgeCache Flow Prod
+CLUSTER_HOST="d03nappp0085.hadoop.charter.com"
+CLUSTER_PORT="7183"
+CLUSTERNAME="PROD_ECUKAFKA"
+#CLUSTER="SMDF%20Prod"
+CLUSTER="PROD_ECUKAFKA"
+CDLR_SVC_API_PATH="/api/v15/clusters/${CLUSTER}/services?view=SUMMARY"
+curl -s -k -n -X GET --header 'Accept: application/json' https://${CLUSTER_HOST}:${CLUSTER_PORT}${CDLR_SVC_API_PATH} |egrep 'displayName|entityStatus'|grep -v ECUKAFKA |awk -F: '{print $2}'|sed 's/"//g'|sed 's/,//'|awk 'NR%2{printf "%s ",$0;next;}1'|egrep -v 'GOOD|NONE'|sed 's/  /,/g' >> $CLDR_OUTFILE
+
+sed -i 's/^ /'"$CLUSTERNAME"',/' $CLDR_OUTFILE
+
+######## Dataflow DEV
+CLUSTER_HOST="ncednhfkafa0006.devhadoop.charter.com"
+CLUSTER_PORT="7183"
+CLUSTERNAME="DataFlow_DEV"
+#CLUSTER="SMDF%20Prod"
+CLUSTER="DataFlow_DEV"
+CDLR_SVC_API_PATH="/api/v41/clusters/${CLUSTER}/services?view=SUMMARY"
+curl -s -k -n -X GET --header 'Accept: application/json' https://${CLUSTER_HOST}:${CLUSTER_PORT}${CDLR_SVC_API_PATH} |egrep 'displayName|entityStatus'|grep -v DataFlow |awk -F: '{print $2}'|sed 's/"//g'|sed 's/,//'|awk 'NR%2{printf "%s ",$0;next;}1'|egrep -v 'GOOD|NONE'|sed 's/  /,/g' >> $CLDR_OUTFILE
+
+sed -i 's/^ /'"$CLUSTERNAME"',/' $CLDR_OUTFILE
+
+
+######## Dataflow UAT
+CLUSTER_HOST="ncwunhfkafa0005.hadoop.charter.com"
+CLUSTER_PORT="7180"
+CLUSTERNAME="SDataFlow_UAT"
+#CLUSTER="SMDF%20Prod"
+CLUSTER="SDataFlow_UAT"
+CDLR_SVC_API_PATH="/api/v41/clusters/${CLUSTER}/services?view=SUMMARY"
+curl -s -k -n -X GET --header 'Accept: application/json' http://${CLUSTER_HOST}:${CLUSTER_PORT}${CDLR_SVC_API_PATH} |egrep 'displayName|entityStatus'|grep -v DataFlow |awk -F: '{print $2}'|sed 's/"//g'|sed 's/,//'|awk 'NR%2{printf "%s ",$0;next;}1'|egrep -v 'GOOD|NONE'|sed 's/  /,/g' >> $CLDR_OUTFILE
+
+sed -i 's/^ /'"$CLUSTERNAME"',/' $CLDR_OUTFILE
+
+
+######## Dataflow PROD
+CLUSTER_HOST="ncepnhfkafa0014.hadoop.charter.com"
+CLUSTER_PORT="7180"
+CLUSTERNAME="SDataFlow_PROD"
+#CLUSTER="SMDF%20Prod"
+CLUSTER="SDataFlow_PROD"
+CDLR_SVC_API_PATH="/api/v41/clusters/${CLUSTER}/services?view=SUMMARY"
+curl -s -k -n -X GET --header 'Accept: application/json' http://${CLUSTER_HOST}:${CLUSTER_PORT}${CDLR_SVC_API_PATH} |egrep 'displayName|entityStatus'|grep -v DataFlow |awk -F: '{print $2}'|sed 's/"//g'|sed 's/,//'|awk 'NR%2{printf "%s ",$0;next;}1'|egrep -v 'GOOD|NONE'|sed 's/  /,/g' >> $CLDR_OUTFILE
+
+sed -i 's/^ /'"$CLUSTERNAME"',/' $CLDR_OUTFILE
+
+######## Dataflow DR
+CLUSTER_HOST="ncwrnhfkafa0007.hadoop.charter.com"
+CLUSTER_PORT="7180"
+CLUSTERNAME="SDataFlow_DR"
+#CLUSTER="SMDF%20Prod"
+CLUSTER="SDataFlow_DR"
+CDLR_SVC_API_PATH="/api/v41/clusters/${CLUSTER}/services?view=SUMMARY"
+curl -s -k -n -X GET --header 'Accept: application/json' http://${CLUSTER_HOST}:${CLUSTER_PORT}${CDLR_SVC_API_PATH} |egrep 'displayName|entityStatus'|grep -v DataFlow |awk -F: '{print $2}'|sed 's/"//g'|sed 's/,//'|awk 'NR%2{printf "%s ",$0;next;}1'|egrep -v 'GOOD|NONE'|sed 's/  /,/g' >> $CLDR_OUTFILE
+
+sed -i 's/^ /'"$CLUSTERNAME"',/' $CLDR_OUTFILE
+
+
+######## SAAP Proxy DEV
+CLUSTER_HOST="ncednspkapw0001.devhadoop.charter.com"
+CLUSTER_PORT="7183"
+CLUSTERNAME="SAAP Proxy Dev"
+#CLUSTER="SMDF%20Prod"
+CLUSTER="VOD_Dev"
+CDLR_SVC_API_PATH="/api/v41/clusters/${CLUSTER}/services?view=SUMMARY"
+curl -s -k -n -X GET --header 'Accept: application/json' https://${CLUSTER_HOST}:${CLUSTER_PORT}${CDLR_SVC_API_PATH} |egrep 'displayName|entityStatus'|grep -v VOD_Dev |awk -F: '{print $2}'|sed 's/"//g'|sed 's/,//'|awk 'NR%2{printf "%s ",$0;next;}1'|egrep -v 'GOOD|NONE'|sed 's/  /,/g' >> $CLDR_OUTFILE
+
+sed -i 's/^ /'"$CLUSTERNAME"',/' $CLDR_OUTFILE
+
+# Create HTML file - Alerts
+awk 'BEGIN{
+FS=","
+print  "<HTML>""<H3>Cloudera Alerts</H3><TABLE border="1"><TH>Cluster</TH><TH>Component</TH><TH>Status</TH>"
+}
+ {
+printf "<TR>"
+for(i=1;i<=NF;i++)
+printf "<TD>%s</TD>", $i
+print "</TR>"
+ }
+END{
+print "</TABLE>"
+ }
+' $CLDR_OUTFILE > $HOME/cluster-alerts.html
+
+# Email the HTML file
+#(echo "To: $EMAIL"; echo "MIME-Version: 1.0"  ; echo "Subject: $SUBJECT"   ; echo "Content-Type: text/html"; cat $HOME/cluster-alerts.html) | 2>/dev/null /usr/sbin/sendmail -t
+(echo "To: $EMAIL"; echo "MIME-Version: 1.0"  ; echo "Subject: $SUBJECT"   ; echo "Content-Type: text/html"; cat $HOME/cluster-alerts.html) | 2>/dev/null /usr/sbin/sendmail -t
+LINUX-kstluwk06 $

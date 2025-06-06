@@ -1,0 +1,30 @@
+[svc-bdadmin@ncepnhfkafa0001 ~]$ cat /home/svc-bdadmin/network-stat.ksh
+#!/bin/ksh
+
+FILE="./nodes.txt"
+OUTPUT="./network-stats.txt"
+NOW=$(date +"%Y%m%d-%H%M")
+#EMAIL="ramakrishna.kothur1@charter.com"
+EMAIL="DL-Corp-IT-BigData-Admins@charter.com"
+CLUSTER="SDF-PROD"
+TMPFILE="./now-stats.txt"
+
+>$TMPFILE
+
+echo "************ $NOW ************" >> $TMPFILE
+for i in `cat nodes.txt`
+do
+   echo "===== $i =====" >> $TMPFILE
+   ssh -tq $i "netstat -nat|grep ^tcp|awk '{print \$6}'|sort |uniq -c" >> $TMPFILE
+done
+
+#tr -d '\r' < $TMPFILE > $TMPFILE1
+sed -i 's/\x0D$//' $TMPFILE
+SUBJECT="$CLUSTER - Network Stats - $NOW"
+cat $TMPFILE | mailx -s "$SUBJECT" $EMAIL
+#cat $TMPFILE | mail -s "$SUBJECT" $EMAIL
+#cat $TMPFILE
+
+cat $TMPFILE >> $OUTPUT
+
+[svc-bdadmin@ncepnhfkafa0001 ~]$

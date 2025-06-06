@@ -1,0 +1,64 @@
+
+=====Script to display CPU and Memory Utilization on a server =====
+
+[svc-bdadmin@ncepnhpmsta0002 scripts]$ cat user-mem-cpu.ksh
+#!/bin/ksh
+echo "User                 RSS      PCPU    #Procs"
+echo "-------------------- -------- -------- -----"
+ps hax -o rss,pcpu,user |awk '{rss[$3]+=$1;pcpu[$3]+=$2;procs[$3]+=1;}END{for(user in rss) printf "%-20s %8.0f %8.1f %5.0f\n", user, rss[user]/1024, pcpu[user], procs[user];}'|sort -nrk2
+
+echo "=========="
+echo "Three iterations of Top - Summary fields"
+echo "=========="
+top -n3 -d2 -b |egrep 'Tasks|Cpu|Mem|Swap|$^'
+
+
+
+[svc-bdadmin@ncepnhpmsta0002 scripts]$ ./user-mem-cpu.ksh
+User                 RSS      PCPU    #Procs
+-------------------- -------- -------- -----
+root                    24702    187.1   595
+hive                    20754     30.2     4
+ams                     15817    151.4     5
+infra-solr               9377      5.5     1
+atlas                    4593     40.6     1
+zeppelin                 4503      0.1    10
+yarn                     3212     44.4     1
+ranger                   3140      4.0     3
+kafka                    1548      2.6     1
+hbase                    1500      0.1     4
+p2905594                 1283      5.8     4
+kms                      1265      0.3     1
+livy                     1098      0.0     2
+zookeeper                 541      3.9     1
+mysql                     198      0.7     1
+svc-bdadmin                13      0.0     6
+xymon                       7      0.0     7
+nobody                      7      0.0     1
+P2899249                    6      0.0     2
+P2820946                    6      0.0     2
+p2731345                    6      0.0     2
+postfix                     5      0.0     2
+polkitd                     1      0.0     1
+ntp                         1      0.0     1
+dbus                        1      0.0     1
+libstoragemgmt              0      0.0     1
+==========
+Three iterations of Top - Summary fields
+==========
+Tasks: 659 total,   1 running, 658 sleeping,   0 stopped,   0 zombie
+%Cpu(s): 13.5 us,  2.1 sy,  0.0 ni, 83.7 id,  0.0 wa,  0.0 hi,  0.8 si,  0.0 st
+KiB Mem : 26385817+total,  9658296 free, 99596672 used, 15460320+buff/cache
+KiB Swap: 16777212 total,   614404 free, 16162808 used. 15899452+avail Mem
+
+
+Tasks: 659 total,   1 running, 658 sleeping,   0 stopped,   0 zombie
+%Cpu(s): 17.4 us,  1.7 sy,  0.0 ni, 80.4 id,  0.0 wa,  0.0 hi,  0.5 si,  0.0 st
+KiB Mem : 26385817+total,  9658296 free, 99596672 used, 15460320+buff/cache
+KiB Swap: 16777212 total,   614404 free, 16162808 used. 15899452+avail Mem
+
+
+Tasks: 659 total,   1 running, 658 sleeping,   0 stopped,   0 zombie
+%Cpu(s): 12.4 us,  0.7 sy,  0.0 ni, 86.9 id,  0.0 wa,  0.0 hi,  0.1 si,  0.0 st
+KiB Mem : 26385817+total,  9639040 free, 99598048 used, 15462108+buff/cache
+KiB Swap: 16777212 total,   614404 free, 16162808 used. 15899352+avail Mem

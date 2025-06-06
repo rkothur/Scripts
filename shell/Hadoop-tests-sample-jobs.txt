@@ -1,0 +1,783 @@
+[p2731345@ncwrnhphbsa0045 ~]$ ls -l |grep ksh
+-rwxrwxr-x 1 p2731345 p2731345       4828 Mar 24 15:00 hadoop-tests.ksh
+-rwxrwxr-x 1 p2731345 p2731345       3413 Mar 24 15:47 hbase-tests.ksh
+-rwxrwxr-x 1 p2731345 p2731345       4171 Mar 24 16:39 hive-tests.ksh
+-rwxrwxr-x 1 p2731345 p2731345       3759 Mar 25 15:56 impala-tests.ksh
+-rwxrwxr-x 1 p2731345 p2731345       3780 Mar 28 19:24 kafka-tests.ksh
+-rwxrwxr-x 1 p2731345 p2731345       3870 Mar 25 16:11 kudu-tests.ksh
+-rw-rw-r-- 1 p2731345 p2731345        303 Mar  9 22:28 parse.ksh
+-rwxrwxr-x 1 p2731345 p2731345       3274 Mar 24 15:33 spark-tests.ksh
+[p2731345@ncwrnhphbsa0045 ~]$ for i in `ls -1 |grep ksh`
+> do
+> echo "===== $i ====="
+> cat $i
+> done
+===== hadoop-tests.ksh =====
+#!/bin/bash
+
+###################
+#
+# Description: Script to run Hadoop sample jobs
+# Notes: 1. Make sure to kinit before executing the script
+#        2. The script will run - teragen, terasort and teravalidate - create 500000 files in /tmp/hadoop-tests folder
+#        3. It also run TESTDFSIO - write and read operations with 10 files of 1000
+#        4. In the end it cleans up the tera* and TESTDFSIO files
+#        5. Output is stored under - /bigdata/scripts/cdp717upg/backup_data, FileName: hadoop-tests-<datetime>.txt
+# Written by: Ram Kothur
+# Date:
+#
+###################
+
+
+PATH=/usr/share/centrifydc/bin/:/bin:/usr/bin:/sbin:/usr/sbin:/opt/VRTS/bin:/usr/sbin/hbanyware:/opt/cloudera/parcels/CDH/bin
+export PATH
+NOW=$(date +"%Y%m%d-%H%M")
+HST=$(hostname -f)
+BOLD=`tput smso`
+OFFBOLD=`tput rmso`;
+OUTDIR="/bigdata/scripts/cdp717upg/backup_data"
+TAB="\t"
+NEWLN="\n"
+HEADER="############"
+LINE="====="
+
+
+
+#####HADOOP Tests
+HDP_OUTFILE="${OUTDIR}/hadoop-tests-${NOW}.txt"
+>$HDP_OUTFILE
+echo "$HEADER Terasort sample jobs... $HEADER"|tee -a $HDP_OUTFILE
+
+#####Run Teragen
+echo "" |tee -a $HDP_OUTFILE
+echo "$HEADER Running Teragen...$HEADER " |tee -a $HDP_OUTFILE
+echo "" |tee -a $HDP_OUTFILE
+yarn jar /opt/cloudera/parcels/CDH/jars/hadoop-mapreduce-examples-*.jar teragen 500000 /tmp/hadoop-tests/tera-input &>${OUTDIR}/teragen.txt | tee -a $HDP_OUTFILE
+echo "" |tee -a $HDP_OUTFILE
+APP_ID=$(grep "track the job" ${OUTDIR}/teragen.txt|tail -1|awk -F"/" '{print $(NF-1)}')
+echo "App ID is... $APP_ID" |tee -a $HDP_OUTFILE
+echo "" |tee -a $HDP_OUTFILE
+cat ${OUTDIR}/teragen.txt >> $HDP_OUTFILE
+
+
+#####Run Terasort
+echo "" |tee -a $HDP_OUTFILE
+echo "$HEADER Running Terasort...$HEADER " |tee -a $HDP_OUTFILE
+echo "" |tee -a $HDP_OUTFILE
+yarn jar /opt/cloudera/parcels/CDH/jars/hadoop-mapreduce-examples-*.jar terasort /tmp/hadoop-tests/tera-input /tmp/hadoop-tests/tera-sort &>${OUTDIR}/terasort.txt | tee -a $HDP_OUTFILE
+echo "" |tee -a $HDP_OUTFILE
+APP_ID=$(grep "track the job" ${OUTDIR}/terasort.txt|tail -1|awk -F"/" '{print $(NF-1)}')
+echo "App ID is... $APP_ID" |tee -a $HDP_OUTFILE
+echo "" |tee -a $HDP_OUTFILE
+cat ${OUTDIR}/terasort.txt >> $HDP_OUTFILE
+
+#####Run Teravalidate
+echo "" |tee -a $HDP_OUTFILE
+echo "$HEADER Running Teravalidate... $HEADER " |tee -a $HDP_OUTFILE
+echo "" |tee -a $HDP_OUTFILE
+yarn jar /opt/cloudera/parcels/CDH/jars/hadoop-mapreduce-examples-*.jar teravalidate /tmp/hadoop-tests/tera-sort /tmp/hadoop-tests/tera-validate &>${OUTDIR}/teravalidate.txt | tee -a $HDP_OUTFILE
+echo "" |tee -a $HDP_OUTFILE
+APP_ID=$(grep "track the job" ${OUTDIR}/teravalidate.txt|tail -1|awk -F"/" '{print $(NF-1)}')
+echo "App ID is... $APP_ID" |tee -a $HDP_OUTFILE
+echo "" |tee -a $HDP_OUTFILE
+cat ${OUTDIR}/teravalidate.txt >> $HDP_OUTFILE
+
+#####TestDFSio - Write
+echo "" |tee -a $HDP_OUTFILE
+echo "$HEADER Running TESTDFSio - Write... $HEADER " |tee -a $HDP_OUTFILE
+echo "" |tee -a $HDP_OUTFILE
+yarn jar /opt/cloudera/parcels/CDH/jars/hadoop-mapreduce-client-jobclient*-tests.jar TestDFSIO -write  -nrFiles 10 -fileSize 1000 &>${OUTDIR}/testdf-write.txt  | tee -a $HDP_OUTFILE
+echo "" |tee -a $HDP_OUTFILE
+APP_ID=$(grep "track the job" ${OUTDIR}/testdf-write.txt|tail -1|awk -F"/" '{print $(NF-1)}')
+echo "App ID is... $APP_ID" |tee -a $HDP_OUTFILE
+echo "" |tee -a $HDP_OUTFILE
+cat ${OUTDIR}/testdf-write.txt >> $HDP_OUTFILE
+
+#####TestDFSio - Read
+echo "" |tee -a $HDP_OUTFILE
+echo "$HEADER Running TESTDFSio - Read $HEADER " |tee -a $HDP_OUTFILE
+echo "" |tee -a $HDP_OUTFILE
+yarn jar  /opt/cloudera/parcels/CDH/jars/hadoop-mapreduce-client-jobclient*-tests.jar TestDFSIO -read  -nrFiles 10 -fileSize 1000 &>${OUTDIR}/testdf-read.txt | tee -a $HDP_OUTFILE
+echo "" |tee -a $HDP_OUTFILE
+APP_ID=$(grep "track the job" ${OUTDIR}/testdf-read.txt|tail -1|awk -F"/" '{print $(NF-1)}')
+echo "App ID is... $APP_ID" |tee -a $HDP_OUTFILE
+echo "" |tee -a $HDP_OUTFILE
+cat ${OUTDIR}/testdf-read.txt >> $HDP_OUTFILE
+
+#####TESTDFSio - clean
+echo "" |tee -a $HDP_OUTFILE
+echo "$HEADER Running TESTDFSio - Clean $HEADER " |tee -a $HDP_OUTFILE
+echo "" |tee -a $HDP_OUTFILE
+yarn jar  /opt/cloudera/parcels/CDH/jars/hadoop-mapreduce-client-jobclient*-tests.jar TestDFSIO -clean &>${OUTDIR}/testdf-clean.txt | tee -a $HDP_OUTFILE
+echo "" |tee -a $HDP_OUTFILE
+APP_ID=$(grep "track the job" ${OUTDIR}/testdf-clean.txt|tail -1|awk -F"/" '{print $(NF-1)}')
+echo "App ID is... $APP_ID" |tee -a $HDP_OUTFILE
+echo "" |tee -a $HDP_OUTFILE
+cat ${OUTDIR}/testdf-clean.txt >> $HDP_OUTFILE
+cat TestDFSIO_results.log >> $HDP_OUTFILE
+
+#####Clean up - Tera Data
+echo "" |tee -a $HDP_OUTFILE
+echo "$HEADER Clean up terasort files...$HEADER " |tee -a $HDP_OUTFILE
+echo "" |tee -a $HDP_OUTFILE
+hdfs dfs -rm -r -skipTrash /tmp/hadoop-tests/tera-*
+rm ${OUTDIR}/teragen.txt ${OUTDIR}/terasort.txt ${OUTDIR}/teravalidate.txt
+rm TestDFSIO_results.log
+
+===== hbase-tests.ksh =====
+#!/bin/bash
+
+###################
+#
+# Description: Script to run hbase sample jobs
+# Notes: 1. kinit before executing the script
+#        2. Creates Namespace - ramtestns, Create table - ramtest-hbase, inserts data into the table, list values in the tables
+#        3. Drops the table and namespace and confirms
+#        4. Output directory: /bigdata/scripts/cdp717upg/backup_data/hbase-tests-<date>-<time>.txt
+# Written by: Ram
+# Date:
+#
+###################
+
+
+PATH=/usr/share/centrifydc/bin/:/bin:/usr/bin:/sbin:/usr/sbin:/opt/VRTS/bin:/usr/sbin/hbanyware:/opt/cloudera/parcles/CDH/bin
+export PATH
+NOW=$(date +"%Y%m%d-%H%M")
+HST=$(hostname -f)
+BOLD=`tput smso`
+OFFBOLD=`tput rmso`;
+OUTDIR="/bigdata/scripts/cdp717upg/backup_data"
+TAB="\t"
+NEWLN="\n"
+HEADER="############"
+LINE="====="
+
+
+
+
+#####HBase sample jobs
+HBASE_OUTFILE="${OUTDIR}/hbase-tests-${NOW}.txt"
+>$HBASE_OUTFILE
+
+echo "$HEADER HBase sample jobs... $HEADER"|tee -a $HBASE_OUTFILE
+echo ""|tee -a $HBASE_OUTFILE
+echo "$LINE Create namespace $LINE" |tee -a $HBASE_OUTFILE
+echo ""|tee -a $HBASE_OUTFILE
+echo "create_namespace 'ramtestns'" |hbase shell|tee -a $HBASE_OUTFILE
+
+echo ""|tee -a $HBASE_OUTFILE
+echo "$LINE List namespace $LINE" |tee -a $HBASE_OUTFILE
+echo ""|tee -a $HBASE_OUTFILE
+echo "list_namespace" |hbase shell|tee -a $HBASE_OUTFILE
+
+echo ""|tee -a $HBASE_OUTFILE
+echo "$LINE Create Table $LINE" |tee -a $HBASE_OUTFILE
+echo ""|tee -a $HBASE_OUTFILE
+echo "create 'ramtestns:ramtest-hbase', 'personalcf', 'professionalcf'" |hbase shell|tee -a $HBASE_OUTFILE
+
+echo ""|tee -a $HBASE_OUTFILE
+echo "$LINE Describe Table $LINE" |tee -a $HBASE_OUTFILE
+echo ""|tee -a $HBASE_OUTFILE
+echo "describe 'ramtestns:ramtest-hbase'" |hbase shell|tee -a $HBASE_OUTFILE
+
+echo ""|tee -a $HBASE_OUTFILE
+echo "$LINE List Tables in namespace $LINE" |tee -a $HBASE_OUTFILE
+echo ""|tee -a $HBASE_OUTFILE
+echo "list_namespace_tables 'ramtestns'" |hbase shell|tee -a $HBASE_OUTFILE
+
+echo ""|tee -a $HBASE_OUTFILE
+echo "$LINE Insert into Table $LINE" |tee -a $HBASE_OUTFILE
+echo ""|tee -a $HBASE_OUTFILE
+echo "put 'ramtestns:ramtest-hbase','1','personalcf:name','raju'; put 'ramtestns:ramtest-hbase','1','personalcf:city','hyderabad'; put 'ramtestns:ramtest-hbase','1','professionalcf:designation','manager'; put 'ramtestns:ramtest-hbase','1','professionalcf:salary','50000'; put 'ramtestns:ramtest-hbase','2','personalcf:name','raju2'; put 'ramtestns:ramtest-hbase','2','personalcf:city','hyderabad2'; put 'ramtestns:ramtest-hbase','2','professionalcf:designation','manager2'; put 'ramtestns:ramtest-hbase','2','professionalcf:salary','50000'"|hbase shell|tee -a $HBASE_OUTFILE
+
+echo ""|tee -a $HBASE_OUTFILE
+echo "$LINE Scan Table $LINE" |tee -a $HBASE_OUTFILE
+echo ""|tee -a $HBASE_OUTFILE
+echo "scan 'ramtestns:ramtest-hbase'" |hbase shell |tee -a $HBASE_OUTFILE
+
+echo ""|tee -a $HBASE_OUTFILE
+echo "$LINE Drop Table $LINE" |tee -a $HBASE_OUTFILE
+echo ""|tee -a $HBASE_OUTFILE
+echo "disable 'ramtestns:ramtest-hbase'; drop 'ramtestns:ramtest-hbase'" |hbase shell|tee -a $HBASE_OUTFILE
+
+echo ""|tee -a $HBASE_OUTFILE
+echo "$LINE Drop Namespace $LINE" |tee -a $HBASE_OUTFILE
+echo ""|tee -a $HBASE_OUTFILE
+echo "drop_namespace 'ramtestns'" | hbase shell|tee -a $HBASE_OUTFILE
+
+echo ""|tee -a $HBASE_OUTFILE
+echo "$LINE List Namespace to confirm $LINE" |tee -a $HBASE_OUTFILE
+echo ""|tee -a $HBASE_OUTFILE
+echo "list_namespace" | hbase shell|tee -a $HBASE_OUTFILE
+
+===== hive-tests.ksh =====
+#!/bin/bash
+
+###################
+#
+# Description: Script to run hive sample jobs
+# Notes: 1. kinit before executing the script
+#        2. Change value of BLINE_STRING if running on a different cluster
+#        3. The script creates DB - ramtestdb, Table - product1, Inserts/Selects data, drop table and DB
+#        4. Output file: /bigdata/scripts/cdp717upg/backup_data/hive-tests-<date>-<time>.txt
+# Written by: Ram Kothur
+# Date:
+#
+###################
+
+
+PATH=/usr/share/centrifydc/bin/:/bin:/usr/bin:/sbin:/usr/sbin:/opt/VRTS/bin:/usr/sbin/hbanyware:/opt/cloudera/parcles/CDH/bin
+export PATH
+NOW=$(date +"%Y%m%d-%H%M")
+HST=$(hostname -f)
+BOLD=`tput smso`
+OFFBOLD=`tput rmso`;
+OUTDIR="/bigdata/scripts/cdp717upg/backup_data"
+TAB="\t"
+NEWLN="\n"
+HEADER="############"
+LINE="====="
+
+
+#####Hive Tests
+HIVE_OUTFILE="${OUTDIR}/hive-tests-${NOW}.txt"
+BLINE_STRING="jdbc:hive2://ncwrnhphbsa0046.hadoop.charter.com:10000/default;principal=hive/_HOST@HADOOP.CHARTER.COM;"
+>$HIVE_OUTFILE
+echo "$HEADER Hive sample jobs... $HEADER"|tee -a $HIVE_OUTFILE
+
+#echo "$LINE Create Sample Data" |tee -a $HIVE_OUTFILE
+#cat <<HIVE_END > ~/hive-sample-script.hql
+#create database if not exists ramtestdb;
+#describe database ramtestdb;
+#create external table if not exists ramtestdb.product1 ( productid int, productname string, price float, category string) location "/tmp/product";
+#describe ramtestdb.product;
+#insert into ramtestdb.product1 values (1234, 'product1', 12.99, 'category1'),(1235, 'product2', 13.99, 'category2'),(1236, 'product3', 14.99, 'category3'),(1237, 'product4', 15.99, 'category4'),(1238, 'product5', 16.99, 'category5');
+#select * from ramtestdb.product1;
+#HIVE_END
+
+
+echo ""|tee -a $HIVE_OUTFILE
+echo "$LINE Create DB..." |tee -a $HIVE_OUTFILE
+echo ""|tee -a $HIVE_OUTFILE
+beeline -u $BLINE_STRING -e "create database if not exists ramtestdb;"| tee -a $HIVE_OUTFILE
+
+echo ""|tee -a $HIVE_OUTFILE
+echo "$LINE Describe DB..." |tee -a $HIVE_OUTFILE
+echo ""|tee -a $HIVE_OUTFILE
+beeline -u $BLINE_STRING -e "describe database ramtestdb;"| tee -a $HIVE_OUTFILE
+
+
+echo ""|tee -a $HIVE_OUTFILE
+echo "$LINE Create External Table..." |tee -a $HIVE_OUTFILE
+echo ""|tee -a $HIVE_OUTFILE
+beeline -u $BLINE_STRING -e "create external table if not exists ramtestdb.product1 ( productid int, productname string, price float, category string) location '/tmp/product' TBLPROPERTIES ('external.table.purge'='true');"| tee -a $HIVE_OUTFILE
+
+echo ""|tee -a $HIVE_OUTFILE
+echo "$LINE Describe External Table..." |tee -a $HIVE_OUTFILE
+echo ""|tee -a $HIVE_OUTFILE
+beeline -u $BLINE_STRING -e "describe extended ramtestdb.product;"| tee -a $HIVE_OUTFILE
+
+echo ""|tee -a $HIVE_OUTFILE
+echo "$LINE Insert into Table..." |tee -a $HIVE_OUTFILE
+echo ""|tee -a $HIVE_OUTFILE
+beeline -u $BLINE_STRING -e "insert into ramtestdb.product1 values (1234, 'product1', 12.99, 'category1'),(1235, 'product2', 13.99, 'category2'),(1236, 'product3', 14.99, 'category3'),(1237, 'product4', 15.99, 'category4'),(1238, 'product5', 16.99, 'category5');"| tee -a $HIVE_OUTFILE
+
+echo ""|tee -a $HIVE_OUTFILE
+echo "$LINE List External Table..." |tee -a $HIVE_OUTFILE
+echo ""|tee -a $HIVE_OUTFILE
+beeline -u $BLINE_STRING -e "select * from ramtestdb.product1;"| tee -a $HIVE_OUTFILE
+
+echo ""|tee -a $HIVE_OUTFILE
+echo "$LINE List HDFS Files..." |tee -a $HIVE_OUTFILE
+echo ""|tee -a $HIVE_OUTFILE
+hdfs dfs -ls /tmp/product |tee -a $HIVE_OUTFILE
+
+echo ""|tee -a $HIVE_OUTFILE
+echo "$LINE Drop External Table..." |tee -a $HIVE_OUTFILE
+echo ""|tee -a $HIVE_OUTFILE
+beeline -u $BLINE_STRING -e "use ramtestdb;drop table product1;"| tee -a $HIVE_OUTFILE
+
+
+echo ""|tee -a $HIVE_OUTFILE
+echo "$LINE Show Tables..." |tee -a $HIVE_OUTFILE
+echo ""|tee -a $HIVE_OUTFILE
+beeline -u $BLINE_STRING -e "use ramtestdb; show tables;"| tee -a $HIVE_OUTFILE
+
+echo ""|tee -a $HIVE_OUTFILE
+echo "$LINE Drop Database..." |tee -a $HIVE_OUTFILE
+echo ""|tee -a $HIVE_OUTFILE
+beeline -u $BLINE_STRING -e "drop database ramtestdb;"| tee -a $HIVE_OUTFILE
+
+
+echo ""|tee -a $HIVE_OUTFILE
+echo "$LINE List all Databases..." |tee -a $HIVE_OUTFILE
+echo ""|tee -a $HIVE_OUTFILE
+beeline -u $BLINE_STRING -e "show databases;"| tee -a $HIVE_OUTFILE
+===== impala-tests.ksh =====
+#!/bin/bash
+
+###################
+#
+# Description: Script to run Impala sample jobs
+# Notes: 1. kinit before executing the script
+#        2. Change impala-shell address if running on a different cluster "IMP_STRING"
+#        3. Creates DB - ramtest_impaladb, Table - product_imp, inserts/selects/drops table and drops db
+#        4. Output file: /bigdata/scripts/cdp717upg/backup_data/impala-tests-<date>-<time>.txt
+# Written by: Ram Kothur
+# Date:
+#
+###################
+
+
+PATH=/usr/share/centrifydc/bin/:/bin:/usr/bin:/sbin:/usr/sbin:/opt/VRTS/bin:/usr/sbin/hbanyware:/opt/cloudera/parcles/CDH/bin
+export PATH
+NOW=$(date +"%Y%m%d-%H%M")
+HST=$(hostname -f)
+BOLD=`tput smso`
+OFFBOLD=`tput rmso`;
+OUTDIR="/bigdata/scripts/cdp717upg/backup_data"
+#OUTFILE="${OUTDIR}/hive-tests-${NOW}.txt"
+TAB="\t"
+NEWLN="\n"
+HEADER="############"
+LINE="====="
+
+
+
+#####Impala Tests
+IMP_OUTFILE="${OUTDIR}/impala-tests-${NOW}.txt"
+IMP_STRING="impala-shell -i ncwrnhphbsa0047.hadoop.charter.com -d default -k --ssl --ca_cert=/bigdata/security/tls/rootca/rootCA.pem"
+>$IMP_OUTFILE
+echo "$HEADER Impala sample jobs... $HEADER"|tee -a $IMP_OUTFILE
+
+echo ""|tee -a $IMP_OUTFILE
+echo "$LINE Create DB...$LINE" |tee -a $IMP_OUTFILE
+echo ""|tee -a $IMP_OUTFILE
+$IMP_STRING -q "create database ramtest_impaladb;"| tee -a $IMP_OUTFILE
+
+echo ""|tee -a $IMP_OUTFILE
+echo "$LINE Describe DB...$LINE" |tee -a $IMP_OUTFILE
+echo ""|tee -a $IMP_OUTFILE
+$IMP_STRING -q "describe database ramtest_impaladb;"| tee -a $IMP_OUTFILE
+
+
+echo ""|tee -a $IMP_OUTFILE
+echo "$LINE Create External Table...$LINE" |tee -a $IMP_OUTFILE
+echo ""|tee -a $IMP_OUTFILE
+$IMP_STRING -q "create external table if not exists ramtest_impaladb.product_imp ( productid int, productname string, price float, category string) location '/tmp/product_imp' TBLPROPERTIES ('external.table.purge'='true');" |tee -a $IMP_OUTFILE
+
+echo ""|tee -a $IMP_OUTFILE
+echo "$LINE Describe External Table...$LINE" |tee -a $IMP_OUTFILE
+echo ""|tee -a $IMP_OUTFILE
+$IMP_STRING -q "describe extended ramtest_impaladb.product_imp;" |tee -a $IMP_OUTFILE
+
+echo ""|tee -a $IMP_OUTFILE
+echo "$LINE Insert into Table...$LINE" |tee -a $IMP_OUTFILE
+echo ""|tee -a $IMP_OUTFILE
+$IMP_STRING -q "insert into ramtest_impaladb.product_imp values (1234, 'product1', 12.99, 'category1'),(1235, 'product2', 13.99, 'category2'),(1236, 'product3', 14.99, 'category3'),(1237, 'product4', 15.99, 'category4'),(1238, 'product5', 16.99, 'category5');" |tee -a $IMP_OUTFILE
+
+echo ""|tee -a $IMP_OUTFILE
+echo "$LINE List External Table...$LINE" |tee -a $IMP_OUTFILE
+echo ""|tee -a $IMP_OUTFILE
+$IMP_STRING -q "select * from ramtest_impaladb.product_imp;" |tee -a $IMP_OUTFILE
+
+echo ""|tee -a $IMP_OUTFILE
+echo "$LINE List HDFS Files...$LINE" |tee -a $IMP_OUTFILE
+echo ""|tee -a $IMP_OUTFILE
+hdfs dfs -ls /tmp/product_imp |tee -a $IMP_OUTFILE
+
+
+echo ""|tee -a $IMP_OUTFILE
+echo "$LINE Drop External Table...$LINE" |tee -a $IMP_OUTFILE
+echo ""|tee -a $IMP_OUTFILE
+$IMP_STRING -q "use ramtest_impaladb; drop table product_imp;" |tee -a $IMP_OUTFILE
+
+
+echo ""|tee -a $IMP_OUTFILE
+echo "$LINE Show Tables...$LINE" |tee -a $IMP_OUTFILE
+echo ""|tee -a $IMP_OUTFILE
+$IMP_STRING -q "show tables in ramtest_impaladb;" |tee -a $IMP_OUTFILE
+
+echo ""|tee -a $IMP_OUTFILE
+echo "$LINE Drop Database...$LINE" |tee -a $IMP_OUTFILE
+echo ""|tee -a $IMP_OUTFILE
+$IMP_STRING -q "drop database ramtest_impaladb;" |tee -a $IMP_OUTFILE
+
+
+sleep 30
+
+echo ""|tee -a $IMP_OUTFILE
+echo "$LINE List all Databases...$LINE" |tee -a $IMP_OUTFILE
+echo ""|tee -a $IMP_OUTFILE
+$IMP_STRING -q "show databases;" |tee -a $IMP_OUTFILE
+
+echo ""|tee -a $IMP_OUTFILE
+echo "Note: Sometimes drop database command is throwing errors but it is eventually successful" |tee -a $IMP_OUTFILE
+echo ""|tee -a $IMP_OUTFILE
+===== kafka-tests.ksh =====
+#!/bin/bash
+
+###################
+#
+# Description: Script to run kafka sample jobs
+# Notes: 1. kinit before executing the script
+#        2. Creates Namespace - ramtestns, Create table - ramtest-hbase, inserts data into the table, list values in the tables
+#        3. Drops the table and namespace and confirms
+#        4. Output directory: /bigdata/scripts/cdp717upg/backup_data/hbase-tests-<date>-<time>.txt
+# Written by: Ram
+# Date:
+#
+###################
+
+
+PATH=/usr/share/centrifydc/bin/:/bin:/usr/bin:/sbin:/usr/sbin:/opt/VRTS/bin:/usr/sbin/hbanyware:/opt/cloudera/parcles/CDH/bin
+export PATH
+NOW=$(date +"%Y%m%d-%H%M")
+HST=$(hostname -f)
+BOLD=`tput smso`
+OFFBOLD=`tput rmso`;
+#OUTDIR="/bigdata/scripts/cdp717upg/backup_data"
+OUTDIR="/home/p2731345/backup_data"
+TAB="\t"
+NEWLN="\n"
+HEADER="############"
+LINE="====="
+
+
+KAFKA_BROKERS="ncednspkafd0001.devhadoop.charter.com:9093"
+export KAFKA_OPTS="-Djava.security.auth.login.config=/home/p2731345/jaas.conf"
+
+#####Kafka sample jobs
+KAFKA_OUTFILE="${OUTDIR}/kafka-tests-${NOW}.txt"
+>$KAFKA_OUTFILE
+
+#2>/dev/null kafka-topics --zookeeper ncednspkapw0003.devhadoop.charter.com:2181/kafka
+kafka-topics --bootstrap-server $KAFKA_BROKERS --list
+
+#echo "$HEADER HBase sample jobs... $HEADER"|tee -a $KAFKA_OUTFILE
+#echo ""|tee -a $KAFKA_OUTFILE
+#echo "$LINE Create namespace $LINE" |tee -a $KAFKA_OUTFILE
+#echo ""|tee -a $KAFKA_OUTFILE
+#echo "create_namespace 'ramtestns'" |hbase shell|tee -a $KAFKA_OUTFILE
+#
+#echo ""|tee -a $KAFKA_OUTFILE
+#echo "$LINE List namespace $LINE" |tee -a $KAFKA_OUTFILE
+#echo ""|tee -a $KAFKA_OUTFILE
+#echo "list_namespace" |hbase shell|tee -a $KAFKA_OUTFILE
+#
+#echo ""|tee -a $KAFKA_OUTFILE
+#echo "$LINE Create Table $LINE" |tee -a $KAFKA_OUTFILE
+#echo ""|tee -a $KAFKA_OUTFILE
+#echo "create 'ramtestns:ramtest-hbase', 'personalcf', 'professionalcf'" |hbase shell|tee -a $KAFKA_OUTFILE
+#
+#echo ""|tee -a $KAFKA_OUTFILE
+#echo "$LINE Describe Table $LINE" |tee -a $KAFKA_OUTFILE
+#echo ""|tee -a $KAFKA_OUTFILE
+#echo "describe 'ramtestns:ramtest-hbase'" |hbase shell|tee -a $KAFKA_OUTFILE
+#
+#echo ""|tee -a $KAFKA_OUTFILE
+#echo "$LINE List Tables in namespace $LINE" |tee -a $KAFKA_OUTFILE
+#echo ""|tee -a $KAFKA_OUTFILE
+#echo "list_namespace_tables 'ramtestns'" |hbase shell|tee -a $KAFKA_OUTFILE
+#
+#echo ""|tee -a $KAFKA_OUTFILE
+#echo "$LINE Insert into Table $LINE" |tee -a $KAFKA_OUTFILE
+#echo ""|tee -a $KAFKA_OUTFILE
+#echo "put 'ramtestns:ramtest-hbase','1','personalcf:name','raju'; put 'ramtestns:ramtest-hbase','1','personalcf:city','hyderabad'; put 'ramtestns:ramtest-hbase','1','professionalcf:designation','manager'; put 'ramtestns:ramtest-hbase','1','professionalcf:salary','50000'; put 'ramtestns:ramtest-hbase','2','personalcf:name','raju2'; put 'ramtestns:ramtest-hbase','2','personalcf:city','hyderabad2'; put 'ramtestns:ramtest-hbase','2','professionalcf:designation','manager2'; put 'ramtestns:ramtest-hbase','2','professionalcf:salary','50000'"|hbase shell|tee -a $KAFKA_OUTFILE
+#
+#echo ""|tee -a $KAFKA_OUTFILE
+#echo "$LINE Scan Table $LINE" |tee -a $KAFKA_OUTFILE
+#echo ""|tee -a $KAFKA_OUTFILE
+#echo "scan 'ramtestns:ramtest-hbase'" |hbase shell |tee -a $KAFKA_OUTFILE
+#
+#echo ""|tee -a $KAFKA_OUTFILE
+#echo "$LINE Drop Table $LINE" |tee -a $KAFKA_OUTFILE
+#echo ""|tee -a $KAFKA_OUTFILE
+#echo "disable 'ramtestns:ramtest-hbase'; drop 'ramtestns:ramtest-hbase'" |hbase shell|tee -a $KAFKA_OUTFILE
+#
+#echo ""|tee -a $KAFKA_OUTFILE
+#echo "$LINE Drop Namespace $LINE" |tee -a $KAFKA_OUTFILE
+#echo ""|tee -a $KAFKA_OUTFILE
+#echo "drop_namespace 'ramtestns'" | hbase shell|tee -a $KAFKA_OUTFILE
+#
+#echo ""|tee -a $KAFKA_OUTFILE
+#echo "$LINE List Namespace to confirm $LINE" |tee -a $KAFKA_OUTFILE
+#echo ""|tee -a $KAFKA_OUTFILE
+#echo "list_namespace" | hbase shell|tee -a $KAFKA_OUTFILE
+#
+===== kudu-tests.ksh =====
+#!/bin/bash
+
+###################
+#
+# Description: Script to run kudu sample jobs using impala and spark
+# Notes: 1. kinit before running the script
+#        2. For spark portion we need to copy the ram.scala file
+#        3. Creates a DB - ramtest_kududb, table - product_kudu, inserts/selects/drop table and drops db
+#        4. Output file: /bigdata/scripts/cdp717upg/backup_data/kudu-tests-<date>-<time>.txt
+# Written by: Ram
+# Date:
+#
+###################
+
+
+PATH=/usr/share/centrifydc/bin/:/bin:/usr/bin:/sbin:/usr/sbin:/opt/VRTS/bin:/usr/sbin/hbanyware:/opt/cloudera/parcles/CDH/bin
+export PATH
+NOW=$(date +"%Y%m%d-%H%M")
+HST=$(hostname -f)
+BOLD=`tput smso`
+OFFBOLD=`tput rmso`;
+OUTDIR="/bigdata/scripts/cdp717upg/backup_data"
+#OUTFILE="${OUTDIR}/hive-tests-${NOW}.txt"
+TAB="\t"
+NEWLN="\n"
+HEADER="############"
+LINE="====="
+
+
+
+#####Impala Tests
+KUDU_OUTFILE="${OUTDIR}/kudu-tests-${NOW}.txt"
+IMP_STRING="impala-shell -i ncwrnhphbsa0047.hadoop.charter.com -d default -k --ssl --ca_cert=/bigdata/security/tls/rootca/rootCA.pem"
+>$KUDU_OUTFILE
+echo "$HEADER Kudu sample jobs from Impala... $HEADER"|tee -a $KUDU_OUTFILE
+
+echo ""|tee -a $KUDU_OUTFILE
+echo "$LINE Create DB...$LINE" |tee -a $KUDU_OUTFILE
+echo ""|tee -a $KUDU_OUTFILE
+$IMP_STRING -q "create database ramtest_kududb;"| tee -a $KUDU_OUTFILE
+
+echo ""|tee -a $KUDU_OUTFILE
+echo "$LINE Describe DB...$LINE" |tee -a $KUDU_OUTFILE
+echo ""|tee -a $KUDU_OUTFILE
+$IMP_STRING -q "describe database ramtest_kududb;"| tee -a $KUDU_OUTFILE
+
+
+echo ""|tee -a $KUDU_OUTFILE
+echo "$LINE Create Table...$LINE" |tee -a $KUDU_OUTFILE
+echo ""|tee -a $KUDU_OUTFILE
+$IMP_STRING -q "create table if not exists ramtest_kududb.product_kudu ( productid int, productname string, price float, category string, primary key(productid)) PARTITION BY HASH PARTITIONS 3 STORED AS KUDU;" |tee -a $KUDU_OUTFILE
+
+echo ""|tee -a $KUDU_OUTFILE
+echo "$LINE Describe External Table...$LINE" |tee -a $KUDU_OUTFILE
+echo ""|tee -a $KUDU_OUTFILE
+$IMP_STRING -q "describe ramtest_kududb.product_kudu;describe extended ramtest_kududb.product_kudu;" |tee -a $KUDU_OUTFILE
+
+echo ""|tee -a $KUDU_OUTFILE
+echo "$LINE Insert into Table...$LINE" |tee -a $KUDU_OUTFILE
+echo ""|tee -a $KUDU_OUTFILE
+$IMP_STRING -q "insert into ramtest_kududb.product_kudu values (1234, 'product1', 12.99, 'category1'),(1235, 'product2', 13.99, 'category2'),(1236, 'product3', 14.99, 'category3'),(1237, 'product4', 15.99, 'category4'),(1238, 'product5', 16.99, 'category5');" |tee -a $KUDU_OUTFILE
+
+echo ""|tee -a $KUDU_OUTFILE
+echo "$LINE List Table...$LINE" |tee -a $KUDU_OUTFILE
+echo ""|tee -a $KUDU_OUTFILE
+$IMP_STRING -q "select * from ramtest_kududb.product_kudu;" |tee -a $KUDU_OUTFILE
+
+
+echo ""|tee -a $KUDU_OUTFILE
+echo "$LINE Drop External Table...$LINE" |tee -a $KUDU_OUTFILE
+echo ""|tee -a $KUDU_OUTFILE
+$IMP_STRING -q "use ramtest_kududb; drop table product_kudu;" |tee -a $KUDU_OUTFILE
+
+
+echo ""|tee -a $KUDU_OUTFILE
+echo "$LINE Show Tables...$LINE" |tee -a $KUDU_OUTFILE
+echo ""|tee -a $KUDU_OUTFILE
+$IMP_STRING -q "show tables in ramtest_kududb;" |tee -a $KUDU_OUTFILE
+
+echo ""|tee -a $KUDU_OUTFILE
+echo "$LINE Drop Database...$LINE" |tee -a $KUDU_OUTFILE
+echo ""|tee -a $KUDU_OUTFILE
+$IMP_STRING -q "drop database ramtest_kududb;" |tee -a $KUDU_OUTFILE
+
+
+sleep 30
+
+echo ""|tee -a $KUDU_OUTFILE
+echo "$LINE List all Databases...$LINE" |tee -a $KUDU_OUTFILE
+echo ""|tee -a $KUDU_OUTFILE
+$IMP_STRING -q "show databases;" |tee -a $KUDU_OUTFILE
+
+echo ""|tee -a $KUDU_OUTFILE
+echo "Note: Sometimes drop database command is throwing errors but it is eventually successful" |tee -a $KUDU_OUTFILE
+echo ""|tee -a $KUDU_OUTFILE
+
+echo "$HEADER Kudu sample jobs from Spark... $HEADER"|tee -a $KUDU_OUTFILE
+echo ":quit" |spark-shell --jars /opt/cloudera/parcels/CDH-7.1.2-1.cdh7.1.2.p0.4253134/jars/kudu-spark2_2.11-1.12.0.7.1.2.0-96.jar -I ram.scala |tee -a $KUDU_OUTFILE
+===== parse.ksh =====
+awk '/<property>/,/<\/property>/ {
+  if (/<name>/) {
+    if ( gsub(/.*<name>|<\/name>.*/,"") ) {
+      parameter=$0
+    }
+  }
+  if (/<value>/) {
+    if ( gsub(/.*<value>|<\/value>.*/,"") ) {
+      setvalue=$0
+    }
+print parameter, " => ", setvalue
+unset parameter
+unset setvalue
+  }
+}' ./core-site.xml
+===== spark-tests.ksh =====
+#!/bin/bash
+
+###################
+#
+# Description: Script to run spark sample jobs
+# Notes: 1. kinit before executing the script
+#        2. The script creates a sample text file, puts it in hdfs under /tmp/spark-test folder and executes a spark-shell wordcount
+#        3. It also run a spark-submit to execute SparkPi
+#        4. Output stored in /bigdata/scripts/cdp717upg/backup_data, FileName: spark-tests-<date>-<time>.txt
+#        5. Cleans up /tmp/spark-test folder in hdfs
+# Written by: Ram Kothur
+# Date:
+#
+###################
+
+
+PATH=/usr/share/centrifydc/bin/:/bin:/usr/bin:/sbin:/usr/sbin:/opt/VRTS/bin:/usr/sbin/hbanyware:/opt/cloudera/parcels/CDH/bin/
+export PATH
+NOW=$(date +"%Y%m%d-%H%M")
+HST=$(hostname -f)
+BOLD=`tput smso`
+OFFBOLD=`tput rmso`;
+OUTDIR="/bigdata/scripts/cdp717upg/backup_data"
+TAB="\t"
+NEWLN="\n"
+HEADER="############"
+LINE="====="
+
+
+
+#####Spark Tests
+SPARK_SAMPLE_FILE=${OUTDIR}/spark-sample-file.txt
+SPARK_OUTFILE="${OUTDIR}/spark-tests-${NOW}.txt"
+>$SPARK_OUTFILE
+echo "$HEADER Spark sample jobs... $HEADER"|tee -a $SPARK_OUTFILE
+
+#####Create Spark sample file
+echo "" |tee -a $SPARK_OUTFILE
+echo "$HEADER Create Sample Spark Test File...$HEADER " |tee -a $SPARK_OUTFILE
+echo "" |tee -a $SPARK_OUTFILE
+echo "This is a Text file that counts the words. This a Text counts counts counts" > $SPARK_SAMPLE_FILE |tee -a $SPARK_OUTFILE
+
+#####Put file into HDFS
+echo "" |tee -a $SPARK_OUTFILE
+echo "$HEADER Copy file to HDFS...$HEADER " |tee -a $SPARK_OUTFILE
+echo "" |tee -a $SPARK_OUTFILE
+hdfs dfs -mkdir /tmp/spark-test |tee -a $SPARK_OUTFILE
+hdfs dfs -put $SPARK_SAMPLE_FILE /tmp/spark-test/
+#hdfs dfs -ls /tmp/spark-test |tee -a $SPARK_OUTFILE
+
+####Execute Spark Wordcount
+echo "" |tee -a $SPARK_OUTFILE
+echo "$HEADER Execute Spark wordcount script...$HEADER " |tee -a $SPARK_OUTFILE
+echo "" |tee -a $SPARK_OUTFILE
+#hdfs dfs -rm -r /tmp/spark-test/output |tee -a $SPARK_OUTFILE
+echo "var map = sc.textFile(\"/tmp/spark-test/spark-sample-file.txt\").flatMap(line => line.split(\" \")).map(word => (word,1));var counts = map.reduceByKey(_ + _);counts.saveAsTextFile(\"/tmp/spark-test/output/\");sc.stop;" |spark-shell |tee -a $SPARK_OUTFILE
+
+#####Check the Spark output files
+echo "" |tee -a $SPARK_OUTFILE
+echo "$HEADER Check the output files...$HEADER " |tee -a $SPARK_OUTFILE
+echo "" |tee -a $SPARK_OUTFILE
+hdfs dfs -ls /tmp/spark-test/output/ |tee -a $SPARK_OUTFILE
+hdfs dfs -cat /tmp/spark-test/output/* |tee -a $SPARK_OUTFILE
+
+#####Run Sparkpi job
+echo "" |tee -a $SPARK_OUTFILE
+echo "$HEADER Run SparkPi job...$HEADER " |tee -a $SPARK_OUTFILE
+echo "" |tee -a $SPARK_OUTFILE
+spark-submit --class org.apache.spark.examples.SparkPi --master yarn --deploy-mode cluster /opt/cloudera/parcels/CDH/jars/spark-examples*.jar 10 &> ${OUTDIR}/spark-tmp.txt
+APP_ID=$(grep "tracking URL" ${OUTDIR}/spark-tmp.txt |tail -1|awk -F"/" '{print $(NF-1)}')
+echo "App ID is... $APP_ID" |tee -a $SPARK_OUTFILE
+#echo $APP_ID
+yarn logs -applicationId ${APP_ID} -log_files stdout |grep Pi |tee -a $SPARK_OUTFILE
+
+#####Clean up
+echo "" |tee -a $SPARK_OUTFILE
+echo "$HEADER Cleanup...$HEADER " |tee -a $SPARK_OUTFILE
+echo "" |tee -a $SPARK_OUTFILE
+hdfs dfs -rm -r /tmp/spark-test |tee -a $SPARK_OUTFILE
+hdfs dfs -ls /tmp |grep spark-test |tee -a $SPARK_OUTFILE
+
+
+[p2731345@ncwrnhphbsa0045 ~]$
+
+
+=================
+[p2731345@ncwrnhphbsa0045 ~]$ cat hive-sample.hql
+create database if not exists ramtestdb;
+describe database ramtestdb;
+create table if not exists ramtestdb.product ( productid int, productname string, price float, category string);
+describe ramtestdb.product;
+insert into ramtestdb.product values (1234, 'product1', 12.99, 'category1');
+insert into ramtestdb.product values (1235, 'product2', 13.99, 'category2');
+insert into ramtestdb.product values (1236, 'product3', 14.99, 'category3');
+insert into ramtestdb.product values (1237, 'product4', 15.99, 'category4');
+insert into ramtestdb.product values (1238, 'product5', 16.99, 'category5');
+select * from ramtestdb.product;
+[p2731345@ncwrnhphbsa0045 ~]$ cat hive-sample-script.hql
+create database if not exists ramtestdb;
+describe database ramtestdb;
+create external table if not exists ramtestdb.product1 ( productid int, productname string, price float, category string) location "/tmp/product";
+describe ramtestdb.product;
+insert into ramtestdb.product1 values (1234, 'product1', 12.99, 'category1'),(1235, 'product2', 13.99, 'category2'),(1236, 'product3', 14.99, 'category3'),(1237, 'product4', 15.99, 'category4'),(1238, 'product5', 16.99, 'category5');
+select * from ramtestdb.product1;
+[p2731345@ncwrnhphbsa0045 ~]$ cat hive-sample-script.txt
+create database if not exists ramtestdb;
+describe database ramtestdb;
+create table if not exists ramtestdb.product ( productid int, productname string, price float, category string);
+describe ramtestdb.product;
+insert into ramtestdb.product values (1234, 'product1', 12.99, 'category1');
+insert into ramtestdb.product values (1235, 'product2', 13.99, 'category2');
+insert into ramtestdb.product values (1236, 'product3', 14.99, 'category3');
+insert into ramtestdb.product values (1237, 'product4', 15.99, 'category4');
+insert into ramtestdb.product values (1238, 'product5', 16.99, 'category5');
+select * from ramtestdb.product;
+[p2731345@ncwrnhphbsa0045 ~]$ cat ram.scala
+import org.apache.kudu.client._
+import org.apache.kudu.spark.kudu.KuduContext
+import collection.JavaConverters._
+import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.Row
+
+val arr= new java.util.ArrayList[Row] ()
+arr.add(Row(1,"ganesh"))
+arr.add(Row(2,"ram"))
+arr.add(Row(3,"dinesh"))
+arr.add(Row(4,"test"))
+
+val arraySchema = new StructType().add("id",IntegerType, false).add("name", StringType, true)
+val df = spark.createDataFrame(arr,arraySchema)
+df.printSchema
+
+val kuduContext = new KuduContext("ncwrnhphbsa0047.hadoop.charter.com:7051,ncwrnhphbsa0050.hadoop.charter.com:7051,ncwrnhphbsa0046.hadoop.charter.com:7051", spark.sparkContext)
+
+println(" ")
+println("#####Create a sample table#####")
+println(" ")
+kuduContext.createTable("default.ramtest_spark", df.schema, Seq("id"),  new CreateTableOptions().setNumReplicas(1).addHashPartitions(List("id").asJava, 3))
+
+println(" ")
+println("#####Insert data into sample table#####")
+println(" ")
+kuduContext.insertRows(df, "default.ramtest_spark")
+val selectdf = spark.read.options(Map("kudu.master" -> "ncwrnhphbsa0047.hadoop.charter.com:7051,ncwrnhphbsa0050.hadoop.charter.com:7051,ncwrnhphbsa0046.hadoop.charter.com:7051", "kudu.table" -> "default.ramtest_spark")).format("kudu").load
+
+println(" ")
+println("#####Select data into sample table#####")
+println(" ")
+val selectdf = spark.read.options(Map("kudu.master" -> "ncwrnhphbsa0047.hadoop.charter.com:7051,ncwrnhphbsa0050.hadoop.charter.com:7051,ncwrnhphbsa0046.hadoop.charter.com:7051", "kudu.table" -> "default.ramtest_spark")).format("kudu").load
+selectdf.show
+
+println(" ")
+println("#####Drop sample table#####")
+println(" ")
+kuduContext.deleteTable("default.ramtest_spark")
+
+:quit
+[p2731345@ncwrnhphbsa0045 ~]$

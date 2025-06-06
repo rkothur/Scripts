@@ -1,0 +1,30 @@
+
+
+
+[kafka@ncepnhfkafa0002 ~]$ crontab -l
+5 8 * * * /bigdata/scripts/delete-spool-files.sh
+
+
+[kafka@ncepnhfkafa0002 ~]$ cat /bigdata/scripts/delete-spool-files.sh
+#!/bin/bash
+
+################
+#
+# Description: Script to delete the older spool files for solr
+# Author: Ram
+# Date:
+#
+################
+
+DIR="/var/log/kafka/audit/solr/spool/"
+FILE="spool_kafka*"
+NOW=$(date +%Y%m%d_%H%M%S)
+OUTFILE="/bigdata/scripts/output/kafka-spool.out"
+NUM_DAYS=20
+
+echo "" >> $OUTFILE
+echo "===== $NOW ===== Deleting spool files older than $NUM_DAYS" >> $OUTFILE
+find $DIR -name "$FILE" -type f -mtime +${NUM_DAYS} -ls >> $OUTFILE
+find $DIR -name "$FILE" -type f -mtime +${NUM_DAYS} -delete
+
+[kafka@ncepnhfkafa0002 ~]$

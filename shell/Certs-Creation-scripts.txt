@@ -1,0 +1,614 @@
+[p2731345@ncepnhpmsta0002 ~]$ cd /bigdata/bigdata-ssl-runbook-sancerts/
+
+[p2731345@ncepnhpmsta0002 bigdata-ssl-runbook-sancerts]$ ll
+total 1712
+drwxrwxr-x 2 svc-bdadmin ux-rg-bd-bigdataadmins   4096 May 24  2018 ad-certs
+-rwxrwxr-x 1 svc-bdadmin ux-rg-bd-bigdataadmins    128 May 24  2018 ad-nodes
+drwxrwxr-x 2 svc-bdadmin ux-rg-bd-bigdataadmins     66 Apr  1 18:04 jks-files
+drwxrwxr-x 2 svc-bdadmin ux-rg-bd-bigdataadmins     66 Apr  1 17:58 pfx-files
+-rwxrwxr-x 1 svc-bdadmin ux-rg-bd-bigdataadmins   7986 Jul 20  2018 README.md
+drwxrwxr-x 2 svc-bdadmin ux-rg-bd-bigdataadmins    106 Nov  6  2018 rootca-certs
+-rwxrwxr-x 1 svc-bdadmin ux-rg-bd-bigdataadmins   1167 Apr 13  2018 run-on-other.sh
+-rwxrwxr-x 1 svc-bdadmin ux-rg-bd-bigdataadmins    598 May 24  2018 run.sh
+-rwxrwxr-x 1 svc-bdadmin ux-rg-bd-bigdataadmins     50 Apr  1 17:58 san-cn
+-rwxrwxr-x 1 svc-bdadmin ux-rg-bd-bigdataadmins    300 Jul 20  2018 san-cn-old
+-rwxrwxr-x 1 svc-bdadmin ux-rg-bd-bigdataadmins  88051 May 24  2018 sanlog-0524.log
+drwxrwxr-x 2 svc-bdadmin ux-rg-bd-bigdataadmins   4096 Feb  5  2021 scripts
+-rwxrwxr-x 1 svc-bdadmin ux-rg-bd-bigdataadmins 409600 May 25  2018 sdataflow-prod-kafa-0001to0020.tar
+-rwxr-xr-x 1 root        root                   122880 Apr  1 15:04 sdatalake-prod-edge-0001to0020.tar
+-rwxrwxr-x 1 svc-bdadmin ux-rg-bd-bigdataadmins 133120 May 18  2020 sdatalake-prod-hbsa-0001to0050.tar
+-rwxrwxr-x 1 svc-bdadmin ux-rg-bd-bigdataadmins 133120 May 18  2020 sdatalake-prod-hbsa-0051to0100.tar
+-rwxrwxr-x 1 svc-bdadmin ux-rg-bd-bigdataadmins 143360 May 18  2020 sdatalake-prod-othr-0001to0010.tar
+-rwxrwxr-x 1 svc-bdadmin ux-rg-bd-bigdataadmins 133120 May 18  2020 sdatalake-prod-wrka-0001to0050.tar
+-rwxrwxr-x 1 svc-bdadmin ux-rg-bd-bigdataadmins 133120 May 18  2020 sdatalake-prod-wrka-0051to0100.tar
+-rwxrwxr-x 1 svc-bdadmin ux-rg-bd-bigdataadmins 133120 May 18  2020 sdatalake-prod-wrka-0101to0150.tar
+drwxrwxr-x 3 svc-bdadmin ux-rg-bd-bigdataadmins     16 Mar 19  2020 sdatalake-prod-wrka-0151to0200
+-rwxrwxr-x 1 svc-bdadmin ux-rg-bd-bigdataadmins 133120 Jan  4 16:11 sdatalake-prod-wrka-0151to0200.tar
+-rwxr-xr-x 1 root        root                   133120 Apr  1 18:04 sdatalake-prod-wrka-0201to0250.tar
+-rwxrwxr-x 1 svc-bdadmin ux-rg-bd-bigdataadmins    218 May 24  2018 variables
+
+
+[p2731345@ncepnhpmsta0002 bigdata-ssl-runbook-sancerts]$ ll ad-certs/
+total 16
+-rwxrwxr-x 1 svc-bdadmin ux-rg-bd-bigdataadmins 1143 Apr 27  2018 hadpapp01.hadoop.charter.com.cer
+-rwxrwxr-x 1 svc-bdadmin ux-rg-bd-bigdataadmins 1143 Apr 27  2018 hadpapp02.hadoop.charter.com.cer
+-rwxrwxr-x 1 svc-bdadmin ux-rg-bd-bigdataadmins 1159 Apr 27  2018 vm0rwwinada0001.hadoop.charter.com.cer
+-rwxrwxr-x 1 svc-bdadmin ux-rg-bd-bigdataadmins 1159 Apr 27  2018 vm0rwwinada0002.hadoop.charter.com.cer
+
+
+[p2731345@ncepnhpmsta0002 bigdata-ssl-runbook-sancerts]$ cat ad-nodes
+hadpapp01.hadoop.charter.com
+hadpapp02.hadoop.charter.com
+vm0rwwinada0001.hadoop.charter.com
+vm0rwwinada0002.hadoop.charter.com
+
+
+[p2731345@ncepnhpmsta0002 bigdata-ssl-runbook-sancerts]$ ll jks-files/
+total 12
+-rw------- 1 root root 9112 Apr  1 18:04 sdatalake-prod-wrka-0201to0250.hadoop.charter.com.jks
+[p2731345@ncepnhpmsta0002 bigdata-ssl-runbook-sancerts]$ ll pfx-files/
+total 12
+-rw-rw-r-- 1 svc-bdadmin svc-bdadmin 9661 Apr  1 17:58 sdatalake-prod-wrka-0201to0250.hadoop.charter.com.pfx
+
+
+[p2731345@ncepnhpmsta0002 bigdata-ssl-runbook-sancerts]$ cat README.md
+#What Do I DO
+
+This runbook is to keystore, truststore, pem, ctr and other SSL Releated Files
+#To Request SSL Certs for any host
+https://sslmgt.twcable.com/aperture/
+
+
+#Runbook Contents
+bigdata-ssl-runbook-sancerts
+        ad-certs
+        ad-nodes
+        jks-files
+        pfx-files
+        README.md
+        rootca-certs
+        run-on-other.sh
+        run.sh
+        san-cn
+        san-cn-old
+        sanlog-0524.log
+        scripts
+        sdataflow-prod-kafa-0001to0020.tar
+        sdatalake-prod-hbsa-0001to0050.tar
+        sdatalake-prod-hbsa-0051to0100.tar
+        sdatalake-prod-othr-0001to0010.tar
+        sdatalake-prod-wrka-0001to0050.tar
+        sdatalake-prod-wrka-0051to0100.tar
+        sdatalake-prod-wrka-0101to0150.tar
+        variables
+
+
+#Where to place the files - Directories
+#ad-certs
+Copy all Active direcotry Domain controller certs into `ad-certs` direcory with namig convention as FQDN.cer
+        - It should be in Base-64 encoded .CER(.cer)
+
+#jks-files
+These files will be generated from the scripts using .pfx files
+
+#pfx-files
+Place all .pfx files for all `san-cn`  with naming convention as SAN Certs
+
+#rootca-certs
+Place all Root and Subordinate CA certificate in this direcotry
+        - with Naming convention as exactly below
+                - `chtr.enterprise.ca.cer` for RootCA
+                - `chtr.enterprise.inter.ca.cer` for subordinate RootCA
+                - `chtr.enterprise.inter2.ca.cer` for second subordinate RootCA
+
+#scripts
+This contains all the scripts needed for the SSL
+
+#sancnshortname.tar
+This is the tar file that you will get after succusfull run, which you will use to copy into other nodes in SAN DNS
+
+
+
+#Required variables and Scripts - Files
+#ad-nodes
+List of all Active direcotry Domain controller FQDN's
+
+#cluster-nodes
+List of FQDN's for all nodes in the Cluster
+
+#run-on-other.sh
+Run this on the other cluster once`run.sh` is succesful in createing `sancnshortname.tar` and `scp sancnshortname.tar` to all other nodes in the cluster - and then run this script on those nodes
+
+#run.sh
+Run this on the Master server to create `sancommonname.tar`
+
+#variables
+Modify it accordingly to fit to your cluster
+
+#GENERATED
+[svc-bdadmin@ncepnhpmsta0002]$ ls /bigdata/security/
+sdataflow-prod-kafa-0001to0020  sdatalake-prod-hbsa-0051to0100  sdatalake-prod-wrka-0001to0050
+sdatalake-prod-hbsa-0001to0050  sdatalake-prod-othr-0001to0010  sdatalake-prod-wrka-0101to0150
+
+#DISTRIBUTE
+#HBase
+for i in {01..50};do scp -r /bigdata/security/sdatalake-prod-hbsa-0001to0050 ncepnhphbsa00$i:;done
+for i in {51..62};do scp -r /bigdata/security/sdatalake-prod-hbsa-0051to0100 ncepnhphbsa00$i:;done
+
+for i in {51..62};do ssh -qt ncepnhphbsa00$i 'hostname -i;/bin/dzdo mkdir /bigdata/security; /bin/dzdo cp -r sdatalake-prod-hbsa-0051to0100/tls /bigdata/security/;/bin/dzdo chmod -R 755 /bigdata/security;ls -alh /bigdata/security/tls';done
+for i in {01..28};do ssh -qt ncepnhphbsa00$i 'hostname -i;/bin/dzdo mkdir /bigdata/security; /bin/dzdo cp -r sdatalake-prod-hbsa-0001to0050/tls /bigdata/security/;/bin/dzdo chmod -R 755 /bigdata/security;ls -alh /bigdata/security/tls';done
+for i in {30..50};do ssh -qt ncepnhphbsa00$i 'hostname -f;/bin/dzdo mkdir /bigdata/security; /bin/dzdo cp -r sdatalake-prod-hbsa-0001to0050/tls /bigdata/security/;/bin/dzdo chmod -R 755 /bigdata/security;ls -alh /bigdata/security/tls';done
+
+#Others
+scp -r /bigdata/security/sdatalake-prod-othr-0001to0010 ncepnhpmsta0001:
+scp -r /bigdata/security/sdatalake-prod-othr-0001to0010 ncepnhpnama0001:
+scp -r /bigdata/security/sdatalake-prod-othr-0001to0010 ncepnhpnama0002:
+scp -r /bigdata/security/sdatalake-prod-othr-0001to0010 ncepnhpedga0002:
+scp -r /bigdata/security/sdatalake-prod-othr-0001to0010 ncepnhpedga0001:
+
+cp -r /bigdata/security/sdatalake-prod-othr-0001to0010/tls /bigdata/security/
+ssh ncepnhpmsta0001 '/bin/dzdo mkdir /bigdata/security; /bin/dzdo cp -r sdatalake-prod-othr-0001to0010/tls /bigdata/security/;/bin/dzdo chmod -R 755 /bigdata/security;ls -alh /bigdata/security/tls'
+ssh ncepnhpnama0001 '/bin/dzdo mkdir /bigdata/security; /bin/dzdo cp -r sdatalake-prod-othr-0001to0010/tls /bigdata/security/;/bin/dzdo chmod -R 755 /bigdata/security;ls -alh /bigdata/security/tls'
+ssh ncepnhpnama0002 '/bin/dzdo mkdir /bigdata/security; /bin/dzdo cp -r sdatalake-prod-othr-0001to0010/tls /bigdata/security/;/bin/dzdo chmod -R 755 /bigdata/security;ls -alh /bigdata/security/tls'
+ssh ncepnhpedga0001 '/bin/dzdo mkdir /bigdata/security; /bin/dzdo cp -r sdatalake-prod-othr-0001to0010/tls /bigdata/security/;/bin/dzdo chmod -R 755 /bigdata/security;ls -alh /bigdata/security/tls'
+ssh ncepnhpedga0002 '/bin/dzdo mkdir /bigdata/security; /bin/dzdo cp -r sdatalake-prod-othr-0001to0010/tls /bigdata/security/;/bin/dzdo chmod -R 755 /bigdata/security;ls -alh /bigdata/security/tls'
+
+#Worker
+scp -r /bigdata/security/sdatalake-prod-wrka-0001to0050 ncepnhpwrka0001:
+ssh ncepnhpwrka0001 '/bin/dzdo mkdir /bigdata/security; /bin/dzdo cp -r sdatalake-prod-wrka-0001to0050/tls /bigdata/security/;/bin/dzdo chmod -R 755 /bigdata/security;ls -alh /bigdata/security/tls'
+
+for i in {122..127}; do scp -r /bigdata/security/sdatalake-prod-wrka-0101to0150 ncepnhpwrka0$i:;done
+for i in {122..127}; do ssh -qt ncepnhpwrka0$i 'hostname -f;/bin/dzdo mkdir /bigdata/security; /bin/dzdo cp -r sdatalake-prod-wrka-0101to0150/tls /bigdata/security/;/bin/dzdo chmod -R 755 /bigdata/security;ls -alh /bigdata/security/tls';done
+
+#Kafka
+for i in {01..13}; do scp -r /bigdata/security/sdataflow-prod-kafa-0001to0020 ncepnhfkafa00$i:;done
+
+for i in {01..13}; do ssh -qt ncepnhfkafa00$i 'hostname -f;/bin/dzdo mkdir /bigdata/security; /bin/dzdo cp -r sdataflow-prod-kafa-0001to0020/tls /bigdata/security/;/bin/dzdo chmod -R 755 /bigdata/security;ls -alh /bigdata/security/tls';done
+
+
+#UAT
+cp -r /bigdata/security/sdataflow-uat-kafa-0001to0020/tls /bigdata/security/
+dzdo chmod -R 755 /bigdata/security
+
+for i in {02..05};do scp -r /bigdata/security/sdataflow-uat-kafa-0001to0020 ncwunhfkafa00$i:;done
+for i in {02..05};do ssh -qt ncwunhfkafa00$i 'hostname -f; /bin/dzdo mkdir /bigdata/security; /bin/dzdo cp -r sdataflow-uat-kafa-0001to0020/tls /bigdata/security;/bin/dzdo chmod -R 755 /bigdata/security;ls -alh /bigdata/security/tls';done
+
+/bin/dzdo cp /usr/jdk64/latest/jre/lib/security/cacerts /usr/jdk64/latest/jre/lib/security/jssecacerts;/bin/dzdo /usr/jdk64/latest/bin/keytool -noprompt -importcert -trustcacerts -alias chtrenterpriserootca -file /bigdata/security/tls/rootca/chtr.enterprise.ca.pem -keystore /usr/jdk64/latest/jre/lib/security/jssecacerts -storepass changeit;/bin/dzdo /usr/jdk64/latest/bin/keytool -noprompt -importcert -trustcacerts -alias chtrenterpriseinterca -file /bigdata/security/tls/rootca/chtr.enterprise.inter.ca.pem -keystore /usr/jdk64/latest/jre/lib/security/jssecacerts -storepass changeit;/bin/dzdo /usr/jdk64/latest/bin/keytool -noprompt -importcert -trustcacerts -alias chtrenterpriseinter2ca -file /bigdata/security/tls/rootca/chtr.enterprise.inter2.ca.pem -keystore /usr/jdk64/latest/jre/lib/security/jssecacerts -storepass changeit;/bin/dzdo chmod 644 /usr/jdk64/latest/jre/lib/security/jssecacerts
+
+
+for i in {02..05};do ssh -qt ncwunhfkafa00$i 'hostname -f; /bin/dzdo cp /usr/jdk64/latest/jre/lib/security/cacerts /usr/jdk64/latest/jre/lib/security/jssecacerts;/bin/dzdo /usr/jdk64/latest/bin/keytool -noprompt -importcert -trustcacerts -alias chtrenterpriserootca -file /bigdata/security/tls/rootca/chtr.enterprise.ca.pem -keystore /usr/jdk64/latest/jre/lib/security/jssecacerts -storepass changeit;/bin/dzdo /usr/jdk64/latest/bin/keytool -noprompt -importcert -trustcacerts -alias chtrenterpriseinterca -file /bigdata/security/tls/rootca/chtr.enterprise.inter.ca.pem -keystore /usr/jdk64/latest/jre/lib/security/jssecacerts -storepass changeit;/bin/dzdo /usr/jdk64/latest/bin/keytool -noprompt -importcert -trustcacerts -alias chtrenterpriseinter2ca -file /bigdata/security/tls/rootca/chtr.enterprise.inter2.ca.pem -keystore /usr/jdk64/latest/jre/lib/security/jssecacerts -storepass changeit';done
+
+
+#To Fid[p2731345@ncepnhpmsta0002 bigdata-ssl-runbook-sancerts]$ ll rootca-certs
+total 12
+-rwxrwxr-x 1 svc-bdadmin ux-rg-bd-bigdataadmins 2664 Apr 27  2018 chtr.enterprise.ca.cer
+-rwxrwxr-x 1 svc-bdadmin ux-rg-bd-bigdataadmins 2990 Apr 27  2018 chtr.enterprise.inter2.ca.cer
+-rwxrwxr-x 1 svc-bdadmin ux-rg-bd-bigdataadmins 2990 Apr 27  2018 chtr.enterprise.inter.ca.cer
+
+
+[p2731345@ncepnhpmsta0002 bigdata-ssl-runbook-sancerts]$ cat run-on-other.sh
+#!/bin/bash
+
+#Copy the below from variables file
+sancommonname=san-common-name
+javahome=/usr/jdk64/latest
+tlsdir=/bigdata/security/tls/
+
+#run this only after copying the sancommonname.tar file
+echo "Copy all $sancommonname.tar file that was prepared"
+tar -vxf $sancommonname.tar
+
+sudo cp -r bigdata/security /bigdata/
+
+echo "Creating a privileged store starting with the one included in the JDK"
+sudo cp $javahome/jre/lib/security/cacerts $javahome/jre/lib/security/jssecacerts
+
+echo "Importing OUR CharterCA file into the CA truststore"
+sudo $javahome/bin/keytool -noprompt -importcert -trustcacerts -alias chtrenterpriserootca -file $tlsdir/rootca/chtr.enterprise.ca.pem -keystore $javahome/jre/lib/security/jssecacerts -storepass changeit
+
+sudo $javahome/bin/keytool -noprompt -importcert -trustcacerts -alias chtrenterpriseinterca -file $tlsdir/rootca/chtr.enterprise.inter.ca.pem -keystore $javahome/jre/lib/security/jssecacerts -storepass changeit
+
+sudo $javahome/bin/keytool -noprompt -importcert -trustcacerts -alias chtrenterpriseinter2ca -file $tlsdir/rootca/chtr.enterprise.inter2.ca.pem -keystore $javahome/jre/lib/security/jssecacerts -storepass changeit
+
+
+[p2731345@ncepnhpmsta0002 bigdata-ssl-runbook-sancerts]$ cat run.sh
+#!/bin/bash
+#repeat the scrit for all the SAN Certs
+for i in `cat $PWD/san-cn`
+do
+        sancommonname=$i
+        sancnshortname=${i%%.*}
+        source $PWD/variables
+        source $PWD/scripts/1_create_directories.sh
+        source $PWD/scripts/2_convert_pfx_to_jks.sh
+        source $PWD/scripts/3_copy_certs_into_tls_directories.sh
+        source $PWD/scripts/4_create_java_privileged_stores.sh
+        source $PWD/scripts/5_importing_rootca_to_jks.sh
+        source $PWD/scripts/6_create_pem_key_certs.sh
+        source $PWD/scripts/7_creating_jks_pem_truststores.sh
+        source $PWD/scripts/8_creating_static_paths.sh
+        source $PWD/scripts/9_set_permissions.sh
+done[p2731345@ncepnhpmsta0002 bigdata-ssl-runbook-sancerts]$
+
+
+[p2731345@ncepnhpmsta0002 bigdata-ssl-runbook-sancerts]$ cat scripts/1_create_directories.sh
+#!/bin/bash
+echo "creating directory structure for the certs .."
+sudo mkdir -p $tlsdir/rootca
+sudo mkdir -p $tlsdir/keystore
+sudo mkdir -p $tlsdir/pfx
+sudo mkdir -p $tlsdir/certs
+sudo mkdir -p $tlsdir/truststore
+sudo mkdir -p $tlsdir/x509
+sudo mkdir -p $tlsdir/ad-certs
+
+echo "changing the permissions as required .."
+sudo chmod 0755 $tlsdir/
+sudo chmod -R 0755 $tlsdir/rootca
+sudo chmod -R 0755 $tlsdir/keystore
+sudo chmod -R 0755 $tlsdir/pfx
+sudo chmod -R 0755 $tlsdir/certs
+sudo chmod -R 0755 $tlsdir/truststore
+sudo chmod -R 0755 $tlsdir/x509
+sudo chmod -R 0755 $tlsdir/ad-certs
+
+[p2731345@ncepnhpmsta0002 bigdata-ssl-runbook-sancerts]$ cat scripts/2_convert_pfx_to_jks.sh
+#!/bin/bash
+echo "Converting .pfx to .jks..."
+[ -e /tmp/aliases.txt ] && rm -f /tmp/aliases.txt
+rm -f jks-files/*
+
+
+sudo $javahome/bin/keytool \
+-noprompt \
+-importkeystore \
+-srckeystore pfx-files/$pfx_prefix$i.pfx \
+-srcalias $sancommonname \
+-destalias $sancommonname \
+-srcstorepass $strpass \
+-srcstoretype pkcs12 \
+-destkeystore jks-files/$pfx_prefix$i.jks \
+-deststoretype JKS \
+-storepass $strpass
+
+[ -e /tmp/aliases.txt ] && rm -f /tmp/aliases.txt
+echo "Done"
+
+#-deststoretype pkcs12
+# Warning: The JKS keystore uses a proprietary format. It is recommended to migrate to PKCS12 which is an industry standard
+
+
+[p2731345@ncepnhpmsta0002 bigdata-ssl-runbook-sancerts]$ cat scripts/3_copy_certs_into_tls_directories.sh
+#!/bin/bash
+echo "converting charter CA .cer file to .pem"
+sudo cp -f $basedir/rootca-certs/chtr.enterprise.ca.cer $tlsdir/rootca/
+sudo openssl x509 -in $tlsdir/rootca/chtr.enterprise.ca.cer -out $tlsdir/rootca/chtr.enterprise.ca.pem
+sudo openssl x509 -outform der -in $tlsdir/rootca/chtr.enterprise.ca.pem -out $tlsdir/rootca/chtr.enterprise.ca.crt
+
+echo "converting charter Intermediate CA .cer file to .pem"
+sudo cp -f $basedir/rootca-certs/chtr.enterprise.inter.ca.cer $tlsdir/rootca/
+sudo openssl x509 -in $tlsdir/rootca/chtr.enterprise.inter.ca.cer -out $tlsdir/rootca/chtr.enterprise.inter.ca.pem
+sudo openssl x509 -outform der -in $tlsdir/rootca/chtr.enterprise.inter.ca.pem -out $tlsdir/rootca/chtr.enterprise.inter.ca.crt
+
+echo "converting charter Intermediate 2 CA .cer file to .pem"
+sudo cp -f $basedir/rootca-certs/chtr.enterprise.inter2.ca.cer $tlsdir/rootca/
+sudo openssl x509 -in $tlsdir/rootca/chtr.enterprise.inter2.ca.cer -out $tlsdir/rootca/chtr.enterprise.inter2.ca.pem
+sudo openssl x509 -outform der -in $tlsdir/rootca/chtr.enterprise.inter.ca.pem -out $tlsdir/rootca/chtr.enterprise.inter.ca.crt
+
+for i in `cat $adnodes`;
+do
+echo "converting AD charter CA .cer file to .pem"
+sudo cp -f $basedir/ad-certs/$i.cer $tlsdir/ad-certs/
+sudo openssl x509 -in $tlsdir/ad-certs/$i.cer -out $tlsdir/ad-certs/$i.pem
+done
+
+echo "importing .jks files to $tlsdir/keystore/ .."
+sudo cp -f jks-files/* $tlsdir/keystore/
+
+echo "importing .pfx files to $tlsdir/pfx/ .."
+sudo cp -f pfx-files/* $tlsdir/pfx/
+
+
+[p2731345@ncepnhpmsta0002 bigdata-ssl-runbook-sancerts]$ cat scripts/4_create_java_privileged_stores.sh
+#!/bin/bash
+echo "Creating a privileged store starting with the one included in the JDK"
+sudo cp $javahome/jre/lib/security/cacerts $javahome/jre/lib/security/jssecacerts
+
+echo "Importing OUR CharterCA file into the CA truststore"
+sudo $javahome/bin/keytool \
+-noprompt \
+-importcert \
+-trustcacerts \
+-alias chtrenterpriserootca \
+-file $tlsdir/rootca/chtr.enterprise.ca.pem \
+-keystore $javahome/jre/lib/security/jssecacerts \
+-storepass changeit
+
+echo "Importing OUR CharterCA Intermediate file into the CA truststore"
+sudo $javahome/bin/keytool \
+-noprompt \
+-importcert \
+-trustcacerts \
+-alias chtrenterpriseinterca \
+-file $tlsdir/rootca/chtr.enterprise.inter.ca.pem \
+-keystore $javahome/jre/lib/security/jssecacerts \
+-storepass changeit
+
+echo "Importing OUR CharterCA Intermediate2 file into the CA truststore"
+sudo $javahome/bin/keytool \
+-noprompt \
+-importcert \
+-trustcacerts \
+-alias chtrenterpriseinter2ca \
+-file $tlsdir/rootca/chtr.enterprise.inter2.ca.pem \
+-keystore $javahome/jre/lib/security/jssecacerts \
+-storepass changeit
+
+for i in `cat $adnodes`;
+do
+sudo $javahome/bin/keytool \
+-noprompt \
+-importcert \
+-trustcacerts \
+-alias $i \
+-file $tlsdir/ad-certs/$i.pem \
+-keystore $javahome/jre/lib/security/jssecacerts \
+-storepass changeit
+done
+
+
+# for i in `cat $sancn`;
+# do
+# sudo $javahome/bin/keytool \
+# -noprompt \
+# -importcert \
+# -trustcacerts \
+# -alias $i \
+# -file $tlsdir/x509/$i.pem \
+# -keystore $javahome/jre/lib/security/jssecacerts \
+# -storepass changeit
+# done
+
+
+[p2731345@ncepnhpmsta0002 bigdata-ssl-runbook-sancerts]$ cat scripts/5_importing_rootca_to_jks.sh
+#!/bin/bash
+echo "Importing the Charter CA Certificate file into the java keystore .."
+for i in `cat $sancn`; do
+sudo $javahome/bin/keytool \
+-noprompt \
+-importcert \
+-trustcacerts \
+-alias chtrenterpriserootca \
+-file $tlsdir/rootca/chtr.enterprise.ca.pem \
+-keystore $tlsdir/keystore/$pfx_prefix$i.jks \
+-storepass $strpass \
+-keypass $strpass
+done
+
+
+echo "Importing the Charter CA Intermediate Certificate file into the java keystore .."
+for i in `cat $sancn`; do
+sudo $javahome/bin/keytool \
+-noprompt \
+-importcert \
+-trustcacerts \
+-alias chtrenterpriseinterca \
+-file $tlsdir/rootca/chtr.enterprise.inter.ca.pem \
+-keystore $tlsdir/keystore/$pfx_prefix$i.jks \
+-storepass $strpass \
+-keypass $strpass
+done
+
+echo "Importing the Charter Intermediate2 CA Certificate file into the java keystore .."
+for i in `cat $sancn`; do
+sudo $javahome/bin/keytool \
+-noprompt \
+-importcert \
+-trustcacerts \
+-alias chtrenterpriseinter2ca \
+-file $tlsdir/rootca/chtr.enterprise.inter2.ca.pem \
+-keystore $tlsdir/keystore/$pfx_prefix$i.jks \
+-storepass $strpass \
+-keypass $strpass
+done
+
+echo "done .."
+
+
+[p2731345@ncepnhpmsta0002 bigdata-ssl-runbook-sancerts]$ cat scripts/6_create_pem_key_certs.sh
+#!/bin/bash
+echo "creating .pem, .key, .keynopw (via .key) from pfx files .."
+for i in `cat $sancn`; do \
+sudo openssl pkcs12 -in $tlsdir/pfx/$pfx_prefix$i.pfx \
+-clcerts \
+-passin pass:$strpass \
+-nokeys \
+-out $tlsdir/x509/$pfx_prefix$i.pem
+done
+
+for i in `cat $sancn`; do \
+sudo openssl pkcs12 -in $tlsdir/pfx/$pfx_prefix$i.pfx \
+-passin pass:$strpass \
+-passout pass:$strpass \
+-nocerts \
+-out $tlsdir/x509/$pfx_prefix$i.key
+done
+
+for i in `cat $sancn`; do \
+sudo openssl pkcs12 -in $tlsdir/pfx/$pfx_prefix$i.pfx \
+-nokeys \
+-clcerts \
+-passin pass:$strpass \
+-out $tlsdir/x509/$pfx_prefix$i.crt
+done
+
+for i in `cat $sancn`; do \
+sudo openssl x509 -in $tlsdir/x509/$pfx_prefix$i.crt \
+-inform pem \
+-outform der \
+-out $tlsdir/x509/$pfx_prefix$i.cer
+done
+
+for i in `cat $sancn`; do
+sudo openssl rsa \
+-in $tlsdir/x509/$pfx_prefix$i.key \
+-passin pass:$strpass \
+-out $tlsdir/x509/$pfx_prefix$i-keynopw.pem
+done
+
+for i in `cat $sancn`; do
+sudo openssl pkcs12 \
+-in $tlsdir/pfx/$pfx_prefix$i.pfx -clcerts -nodes -nocerts \
+-passin pass:$strpass | sudo openssl rsa > $tlsdir/x509/$pfx_prefix$i-keynopw.key
+done
+
+echo "done .."
+
+
+[p2731345@ncepnhpmsta0002 bigdata-ssl-runbook-sancerts]$ cat scripts/7_creating_jks_pem_truststores.sh
+#!/bin/bash
+echo "Creating jks/pem keystores...."
+echo "Add chtr CA cert to truststore"
+
+sudo $javahome/bin/keytool \
+-noprompt \
+-importcert \
+-trustcacerts \
+-alias chrenterpriseca \
+-file $tlsdir/rootca/chtr.enterprise.ca.pem \
+-keystore $tlsdir/truststore/truststore.jks \
+-storepass $strpass
+
+echo "Add chtr CA inter cert to truststore"
+sudo $javahome/bin/keytool \
+-noprompt \
+-importcert \
+-trustcacerts \
+-alias chrenterpriseinterca \
+-file $tlsdir/rootca/chtr.enterprise.inter.ca.pem \
+-keystore $tlsdir/truststore/truststore.jks \
+-storepass $strpass
+
+echo "Add chtr CA inter2 cert to truststore"
+sudo $javahome/bin/keytool \
+-noprompt \
+-importcert \
+-trustcacerts \
+-alias chrenterpriseinter2ca \
+-file $tlsdir/rootca/chtr.enterprise.inter2.ca.pem \
+-keystore $tlsdir/truststore/truststore.jks \
+-storepass $strpass
+
+echo "For each host add the cert to the truststore"
+for i in `cat $adnodes`;
+do
+sudo $javahome/bin/keytool \
+-noprompt \
+-importcert \
+-trustcacerts \
+-alias $i \
+-file $tlsdir/ad-certs/$i.pem \
+-keystore $tlsdir/truststore/truststore.jks \
+-storepass $strpass
+done
+
+echo "For each host add the cert to the truststore"
+for i in `cat $sancn`; do
+sudo $javahome/bin/keytool \
+-noprompt \
+-importcert \
+-trustcacerts \
+-alias $i \
+-file $tlsdir/x509/$pfx_prefix$i.pem \
+-keystore $tlsdir/truststore/truststore.jks \
+-storepass $strpass
+done
+
+
+echo "create pem truststore. Because we're using a CA signed"
+echo "cert, we put the CA cert chain into the pem truststore"
+
+sudo cat $tlsdir/rootca/chtr.enterprise.ca.pem > /tmp/truststore.pem
+sudo cat $tlsdir/rootca/chtr.enterprise.inter.ca.pem > /tmp/truststore.pem
+sudo cat $tlsdir/rootca/chtr.enterprise.inter2.ca.pem > /tmp/truststore.pem
+
+sudo mv /tmp/truststore.pem $tlsdir/truststore/truststore.pem
+
+for i in `cat $sancn`; do
+sudo cat $tlsdir/x509/$pfx_prefix$i.pem >> $tlsdir/truststore/truststore.pem
+done
+
+
+echo "Creating TAR file with all certs for distributing to SAN DNS Nodes"
+sudo tar cf $sancnshortname.tar $tlsdir
+sudo chmod 755  $sancnshortname.tar
+
+echo "completed creating all required certs and trust-store .."
+echo "$sancnshortname.tar created   .."
+echo "Now copy $sancnshortname.tar file to all other nodes and run run-on-other.sh"
+
+
+[p2731345@ncepnhpmsta0002 bigdata-ssl-runbook-sancerts]$ cat scripts/8_creating_static_paths.sh
+#!/bin/bash
+sudo cp $tlsdir/x509/$sancommonname.pem $tlsdir/x509/cert.pem
+sudo cp $tlsdir/x509/$sancommonname.key $tlsdir/x509/key.pem
+sudo cp $tlsdir/x509/$sancommonname-keynopw.pem $tlsdir/x509/keynopw.pem
+sudo cp $tlsdir/keystore/$sancommonname.jks $tlsdir/keystore/keystore.jks
+sudo cp $tlsdir/x509/$sancommonname.crt $tlsdir/x509/cert.crt
+sudo cp $tlsdir/x509/$sancommonname.cer $tlsdir/x509/cert.cer
+sudo cp $tlsdir/x509/$sancommonname.key $tlsdir/x509/key.key
+sudo cp $tlsdir/x509/$sancommonname-keynopw.key $tlsdir/x509/keynopw.key[p2731345@ncepnhpmsta0002 bigdata-ssl-runbook-sancerts]$
+
+
+[p2731345@ncepnhpmsta0002 bigdata-ssl-runbook-sancerts]$ cat scripts/9_set_permissions.sh
+#!/bin/bash
+
+echo "changing the permissions as required .."
+sudo chmod 0755 $tlsdir/
+sudo chmod 0755 $tlsdir/rootca
+sudo chmod 0755 $tlsdir/keystore
+sudo chmod 0755 $tlsdir/pfx
+sudo chmod 0755 $tlsdir/certs
+sudo chmod 0755 $tlsdir/truststore
+sudo chmod 0644 $tlsdir/x509/*
+sudo chmod 0644 $tlsdir/rootca/*
+sudo chmod 0644 $tlsdir/keystore/*
+sudo chmod 0644 $tlsdir/pfx/*
+sudo chmod 0644 $tlsdir/truststore/*
+sudo chmod 0644 $tlsdir/x509/*
+sudo chmod 0644 $tlsdir/ad-certs/*
+sudo chmod 0644 $javahome/jre/lib/security/jssecacerts[p2731345@ncepnhpmsta0002 bigdata-ssl-runbook-sancerts]$
+
+
+[p2731345@ncepnhpmsta0002 bigdata-ssl-runbook-sancerts]$ cat variables
+#!/bin/bash
+#Update these same valuses in run-on-other.sh
+pfx_prefix=""
+sancn=$PWD/san-cn
+adnodes=$PWD/ad-nodes
+strpass=B1gDataCert1
+basedir=$PWD
+javahome=/usr/jdk64/latest
+tlsdir=/bigdata/security/$sancnshortname/tls
+[p2731345@ncepnhpmsta0002 bigdata-ssl-runbook-sancerts]$
+
+
+
+TrustStore
+TrustStore doesn’t contain private and sensitive information.
+javax.net.ssl.trustStore is used to specify TrustStore.
+TrustStore setup is required for the successful connection at the client side.
+TrustStore stores other’s credentials.
+A TrustStore holds the certificates of external systems that you trust.
+TrustStore password is given by following extension Djavax.net.ssl.trustStorePassword.
+TrustStore and TrustStore passwords are stored in clear files and is visible to all.
+
+KeyStore
+Keystore contains private and sensitive information.
+javax.net.ssl.keyStore is used to specify Keystore.
+Keystore is needed when you are setting up the server-side on SSL.
+Keystore stores your credential.
+A KeyStore holds your application’s certificates.
+KeyStore password is given by following extension Djavax.net.ssl.keyStorePassword
+Keystore and key passwords are stored in plain text, in a file that is readable only by members of the appropriate group.
+

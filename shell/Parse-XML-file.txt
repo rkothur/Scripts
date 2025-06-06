@@ -1,0 +1,38 @@
+### Display 
+#
+#<property>
+#      <name>javax.jdo.option.ConnectionURL</name>
+#      <value>jdbc:oracle:thin:@//cdtpoda17-sv.twcable.com:1521/SDATALAKEP_APPS</value>
+#    </property>
+#
+#as 
+#javax.jdo.option.ConnectionURL => jdbc:oracle:thin:@//cdtpoda17-sv.twcable.com:1521/SDATALAKEP_APPS
+#
+LINUX-kstluwk06 $ cat parse1.ksh
+#!/bin/bash
+
+FILES="nce-hive-site.txt hdp-hive-site.txt"
+
+for i in $FILES
+do
+   echo "##########################"
+   echo "===== $i ====="
+   echo "##########################"
+   cat $i | awk '/<property>/,/<\/property>/ {
+       if (/<name>/) {
+          if ( gsub(/.*<name>|<\/name>.*/,"") ) {
+             parameter=$0
+          }
+       }
+       if (/<value>/) {
+          if ( gsub(/.*<value>|<\/value>.*/,"") ) {
+             setvalue=$0
+          }
+       print parameter, " => ", setvalue
+       unset parameter
+       unset setvalue
+       }
+   }'
+done
+
+

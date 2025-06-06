@@ -1,0 +1,17 @@
+[p2731345@ncepnhpedga0001 scripts]$ cat balancer_threshold20.sh
+#!/bin/bash
+
+hdfs dfsadmin -setBalancerBandwidth 5368709120
+export HADOOP_CLIENT_OPTS="-Xmx10048m $HADOOP_CLIENT_OPTS"
+export HADOOP_BALANCER_OPTS="-Xmx8092m $HADOOP_BALANCER_OPTS"
+
+/bin/nohup \
+hdfs balancer \
+-Ddfs.balancer.moverThreads=10000 \
+-Ddfs.balancer.dispatcherThreads=2000 \
+-Ddfs.datanode.balance.max.concurrent.moves=200 \
+-Ddfs.datanode.balance.bandwidthPerSec=1048576000 \
+-Ddfs.balancer.max-size-to-move=100737418240 \
+-threshold 20 \
+1>/data/02/hdfsbalancer/log/balancer-out-`date +"%Y%m%d-%H%M"`.log 2>/data/02/hdfsbalancer/log/balancer-debug-`date +"%Y%m%d-%H%M"`.log &
+[p2731345@ncepnhpedga0001 scripts]$

@@ -1,0 +1,21 @@
+LINUX-kstluwk06 $ cat gen-keytab.ksh
+#!/bin/bash
+read -s -p "Enter Password: " PASSWORD
+
+echo "Deleting old keytabs..."
+rm DEVHADOOP-P2731345.keytab
+rm HADOOP-P2731345.keytab
+rm RAM-ALL-HADOOP.keytab
+
+kdestroy
+printf "%b" "addent -password -p P2731345@DEVHADOOP.CHARTER.COM -k 1 -e aes256-cts\n${PASSWORD}\nwkt DEVHADOOP-P2731345.keytab" | ktutil
+#printf "%b" "read_kt DEVHADOOP-P2731345.keytab\nlist" | ktutil
+printf "%b" "addent -password -p P2731345@HADOOP.CHARTER.COM -k 1 -e aes256-cts\n${PASSWORD}\nwkt HADOOP-P2731345.keytab" | ktutil
+#printf "%b" "read_kt HADOOP-P2731345.keytab\nlist" | ktutil
+
+# Merge keytabs
+printf "%b" "read_kt DEVHADOOP-P2731345.keytab\nread_kt HADOOP-P2731345.keytab\nwrite_kt RAM-ALL-HADOOP.keytab" | ktutil
+klist -kte RAM-ALL-HADOOP.keytab
+
+rm DEVHADOOP-P2731345.keytab
+rm HADOOP-P2731345.keytab

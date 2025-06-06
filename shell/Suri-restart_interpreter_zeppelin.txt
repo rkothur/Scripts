@@ -1,0 +1,68 @@
+[p2709241@ncepnhpmsta0002 ~]$ cat restart_interpreter.sh
+#!/bin/bash
+
+################## USAGE ####################
+# 0 */4 * * * /home/p2709241/restart_interpreter.sh 2>&1 > /home/p2709241/cron/zeppelin_interpreter_cron.txt
+#############################################
+
+CLUSTER_NAME=SDataLake_PROD
+
+ZEPPELIN_URL=ncepnhpmsta0002.hadoop.charter.com
+# Get the Interpreter ID from the Web UI
+INTERPRETER_ID=2F1J226AW
+
+EMAIL="DL-Corp-IT-BigData-Admins@charter.com"
+SERVICE=Zeppelin
+BASEDIR=$HOME
+NOW=$(date)
+
+
+
+#Restart Interprter
+restart_interpreter() {
+
+    # Login - change Username and password
+    LOGIN_STATUS=`curl -k -i --data 'userName=p2709241&password=Bu22w0rd@21' -c zeppelincookies.txt -o /dev/null -s -w "%{http_code}\n" -X POST https://$ZEPPELIN_URL:9995/api/login`
+    echo $LOGIN_STATUS
+
+    if [ $LOGIN_STATUS -eq 200 ]; then
+        echo "$NOW - $SERVICE - Login Success on $ZEPPELIN_URL"
+        LOGIN=TRUE
+        RESTART_STATUS=`curl -k -i -b zeppelincookies.txt -o /dev/null -s -w "%{http_code}\n" -X PUT https://$ZEPPELIN_URL:9995/api/interpreter/setting/restart/$INTERPRETER_ID`
+        echo $RESTART_STATUS
+        if [ $RESTART_STATUS -eq 200 ]; then
+            echo "$NOW - $SERVICE - Restarted Interpreter on $ZEPPELIN_URL"
+            RESTARTED=TRUE
+            send_email_alert $RESTARTED
+        else
+            echo "$NOW - $SERVICE - Not able to Restart Interpreter on $ZEPPELIN_URL"
+            RESTARTED=FALSE
+            send_email_alert $RESTARTED
+        fi
+
+    else
+        RESTARTED=FALSE
+        echo "$NOW - $SERVICE - Login Failure; Not able to Restart Interpreter on $ZEPPELIN_URL"
+        send_email_alert $RESTARTED
+    fi
+}
+
+
+send_email_alert() {
+    SUCCESS=$1
+
+    if [ "$SUCCESS" = "TRUE" ]; then
+        SUBJECT="$CLUSTER_NAME - $SERVICE Interprter on $ZEPPELIN_URL has been restarted successfully"
+        echo "$CLUSTER_NAME - $SERVICE Interprter - RESTART COMPLETE" | mailx -s "$SUBJECT" $EMAIL
+        echo "$NOW - Sent Alert for $ZEPPELIN_URL"
+    else
+        SUBJECT="ACTION NEEDED: $CLUSTER_NAME - $SERVICE Interprter on $ZEPPELIN_URL has issues with the Auto Restart"
+        echo "MANUAL ACTION NEEDED: $CLUSTER_NAME - $SERVICE Interprter on $ZEPPELIN_URL - RESTART HAS ISSUES; Please login to Zeppelin Restart Manually" | mailx -s "$SUBJECT" $EMAIL
+        echo "$NOW - Sent Alert for $ZEPPELIN_URL"
+    fi
+
+}
+
+echo "###################### START #####################"
+restart_interpreter
+echo "###################### DONE #####################"

@@ -1,0 +1,16 @@
+keyring
+setuptools_rust
+argparse
+inquirer
+pathlib
+pytesseract
+requests
+bs4
+configparser
+pyautogui
+pyscreenshot
+Pillow
+pytesseract
+lxml
+boto3
+sshkey_tools

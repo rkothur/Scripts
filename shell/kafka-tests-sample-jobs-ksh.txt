@@ -1,0 +1,174 @@
+[p2731345@ncednspkafd0001 ~]$ ll
+total 36
+drwxrwxr-x 2 p2731345 p2731345 4096 Mar 31 20:23 backup_data
+-rw-rw-r-- 1 p2731345 p2731345  169 Mar 31 20:23 command.config
+-rw-rw-r-- 1 p2731345 p2731345  193 Mar 31 20:23 consumer.properties
+-rw-rw-r-- 1 p2731345 p2731345  867 Mar 31 20:23 jaas.conf
+-rw------- 1 p2731345 root      666 Mar 28 19:04 kafka.keytab
+-rwxrwxr-x 1 p2731345 p2731345 6520 Mar 31 20:26 kafka-tests.ksh
+-rw-rw-r-- 1 p2731345 p2731345  341 Mar 31 20:23 messages.txt
+-rw-rw-r-- 1 p2731345 p2731345  169 Mar 31 20:23 producer.properties
+[p2731345@ncednspkafd0001 ~]$ cat kafka-tests.ksh
+#!/bin/bash
+
+###################
+#
+# Description: Script to run kafka sample jobs
+# Notes: 1. Copy the kafka.keytab file the relevant cluster
+#        2. Creates topic - ramtesttopic
+#        3. Drops topic - ramtesttopic
+#        4. Output directory: /bigdata/scripts/cdp717upg/backup_data/hbase-tests-<date>-<time>.txt
+#        5. Update the KAFKA_BROKERS, producer.properties, consumer.properties, command.properties and jaas.conf below to match the cluster
+# Written by: Ram
+# Date:
+#
+###################
+
+
+PATH=/usr/share/centrifydc/bin/:/bin:/usr/bin:/sbin:/usr/sbin:/opt/VRTS/bin:/usr/sbin/hbanyware:/opt/cloudera/parcels/CDH/bin
+export PATH
+NOW=$(date +"%Y%m%d-%H%M")
+HST=$(hostname -f)
+BOLD=`tput smso`
+OFFBOLD=`tput rmso`;
+#OUTDIR="/bigdata/scripts/cdp717upg/backup_data"
+INDIR="/home/p2731345"
+OUTDIR="/home/p2731345/backup_data"
+TAB="\t"
+NEWLN="\n"
+HEADER="############"
+LINE="====="
+
+
+KAFKA_BROKERS="ncednspkafd0001.devhadoop.charter.com:9093"
+#export KAFKA_OPTS="-Djava.security.auth.login.config=/home/p2731345/jaas.conf"
+
+#####Kafka sample jobs
+KAFKA_OUTFILE="${OUTDIR}/kafka-tests-${NOW}.txt"
+>$KAFKA_OUTFILE
+
+#2>/dev/null kafka-topics --zookeeper ncednspkapw0003.devhadoop.charter.com:2181/kafka
+#kafka-topics --bootstrap-server $KAFKA_BROKERS --list --command-config ./command.config
+
+echo ""|tee -a $KAFKA_OUTFILE
+echo "$LINE Create File for messages to produce... messages.txt $LINE" |tee -a $KAFKA_OUTFILE
+echo ""|tee -a $KAFKA_OUTFILE
+cat >${INDIR}/messages.txt <<EOF
+part0: This is message1 for part0
+part1: This is message2 for part1
+part2: This is message3 for part2
+part0: This is message4 for part0
+part1: This is message5 for part1
+part2: This is message6 for part2
+part0: This is message7 for part0
+part1: This is message8 for part1
+part2: This is message9 for part2
+part0: This is message10 for part0
+EOF
+
+echo ""|tee -a $KAFKA_OUTFILE
+echo "$LINE Create producer.properties File... $LINE" |tee -a $KAFKA_OUTFILE
+echo ""|tee -a $KAFKA_OUTFILE
+cat >${INDIR}/producer.properties <<EOF
+security.protocol=SASL_SSL
+sasl.kerberos.service.name=kafka
+ssl.truststore.location=/bigdata/security/tls/truststore/truststore.jks
+ssl.truststore.password=B1gD@ta!Cert
+EOF
+
+echo ""|tee -a $KAFKA_OUTFILE
+echo "$LINE Create consumer.properties File... $LINE" |tee -a $KAFKA_OUTFILE
+echo ""|tee -a $KAFKA_OUTFILE
+cat >${INDIR}/consumer.properties <<EOF
+security.protocol=SASL_SSL
+sasl.kerberos.service.name=kafka
+ssl.truststore.location=/bigdata/security/tls/truststore/truststore.jks
+ssl.truststore.password=B1gD@ta!Cert
+group.id=ram-test-group
+EOF
+
+echo ""|tee -a $KAFKA_OUTFILE
+echo "$LINE Create command.config File... $LINE" |tee -a $KAFKA_OUTFILE
+echo ""|tee -a $KAFKA_OUTFILE
+cat >${INDIR}/command.config <<EOF
+security.protocol=SASL_SSL
+sasl.kerberos.service.name=kafka
+ssl.truststore.location=/bigdata/security/tls/truststore/truststore.jks
+ssl.truststore.password=B1gD@ta!Cert
+EOF
+
+echo ""|tee -a $KAFKA_OUTFILE
+echo "$LINE Create jaas.conf File... $LINE" |tee -a $KAFKA_OUTFILE
+echo ""|tee -a $KAFKA_OUTFILE
+cat >${INDIR}/jaas.conf <<EOF
+KafkaServer {
+          com.sun.security.auth.module.Krb5LoginModule required
+          doNotPrompt=true
+          useKeyTab=true
+          storeKey=true
+          keyTab="/home/p2731345/kafka.keytab"
+          principal="kafka/ncednspkafd0001.devhadoop.charter.com@DEVHADOOP.CHARTER.COM";
+          org.apache.kafka.common.security.scram.ScramLoginModule required
+          ;
+};
+
+Client {
+   com.sun.security.auth.module.Krb5LoginModule required
+   useKeyTab=true
+   storeKey=true
+   keyTab="/home/p2731345/kafka.keytab"
+   principal="kafka/ncednspkafd0001.devhadoop.charter.com@DEVHADOOP.CHARTER.COM";
+};
+
+KafkaClient {
+ com.sun.security.auth.module.Krb5LoginModule required
+ doNotPrompt=true
+ useTicketCache=false
+ useKeyTab=true
+ keyTab="/home/p2731345/kafka.keytab"
+ principal="kafka/ncednspkafd0001.devhadoop.charter.com@DEVHADOOP.CHARTER.COM"
+ client=true;
+};
+EOF
+
+export KAFKA_OPTS="-Djava.security.auth.login.config=${INDIR}/jaas.conf"
+
+echo ""|tee -a $KAFKA_OUTFILE
+echo "$LINE Create Kafka Topic... ramtesttopic $LINE" |tee -a $KAFKA_OUTFILE
+echo ""|tee -a $KAFKA_OUTFILE
+kafka-topics --bootstrap-server $KAFKA_BROKERS --create --topic ramtesttopic --replication-factor 3 --partitions 3 --command-config ${INDIR}/command.config |tee -a $KAFKA_OUTFILE
+
+echo ""|tee -a $KAFKA_OUTFILE
+echo "$LINE Describe Kafka Topic... ramtesttopic $LINE" |tee -a $KAFKA_OUTFILE
+echo ""|tee -a $KAFKA_OUTFILE
+kafka-topics --bootstrap-server $KAFKA_BROKERS --describe --topic ramtesttopic --command-config ${INDIR}/command.config |tee -a $KAFKA_OUTFILE
+
+echo ""|tee -a $KAFKA_OUTFILE
+echo "$LINE Produce to Kafka Topic... ramtesttopic $LINE" |tee -a $KAFKA_OUTFILE
+echo ""|tee -a $KAFKA_OUTFILE
+kafka-console-producer --broker-list $KAFKA_BROKERS --topic ramtesttopic --property "parse.key=true" --property "key.separator=:" --producer.config ${INDIR}/producer.properties < ${INDIR}/messages.txt |tee -a $KAFKA_OUTFILE
+
+echo ""|tee -a $KAFKA_OUTFILE
+echo "$LINE Consume from Kafka Topic... ramtesttopic $LINE" |tee -a $KAFKA_OUTFILE
+echo "Note: The TimeoutException is normal after the messages are displayed" |tee -a $KAFKA_OUTFILE
+echo ""|tee -a $KAFKA_OUTFILE
+kafka-console-consumer --bootstrap-server $KAFKA_BROKERS --consumer.config ${INDIR}/consumer.properties --topic ramtesttopic --from-beginning --timeout-ms 10000 |tee -a $KAFKA_OUTFILE
+
+echo ""|tee -a $KAFKA_OUTFILE
+echo "$LINE Describe Kafka Consumer Group... ram-test-group $LINE" |tee -a $KAFKA_OUTFILE
+echo ""|tee -a $KAFKA_OUTFILE
+kafka-consumer-groups  --bootstrap-server $KAFKA_BROKERS --command-config ${INDIR}/command.config --describe --group ram-test-group |tee -a $KAFKA_OUTFILE
+echo "" |tee -a $KAFKA_OUTFILE
+kafka-consumer-groups  --bootstrap-server $KAFKA_BROKERS --command-config ${INDIR}/command.config --describe --group ram-test-group --members |tee -a $KAFKA_OUTFILE
+
+echo ""|tee -a $KAFKA_OUTFILE
+echo "$LINE Delete Kafka Topic... ramtesttopic $LINE" |tee -a $KAFKA_OUTFILE
+echo ""|tee -a $KAFKA_OUTFILE
+kafka-topics --bootstrap-server $KAFKA_BROKERS --delete --topic ramtesttopic --command-config ${INDIR}/command.config |tee -a $KAFKA_OUTFILE
+
+echo ""|tee -a $KAFKA_OUTFILE
+echo "$LINE List all Topics and grep of ramtesttopic... $LINE" |tee -a $KAFKA_OUTFILE
+echo ""|tee -a $KAFKA_OUTFILE
+echo "Note: Should not see ramtesttopic in the output" |tee -a $KAFKA_OUTFILE
+kafka-topics --bootstrap-server $KAFKA_BROKERS --list --command-config ${INDIR}/command.config |grep ramtesttopic
+[p2731345@ncednspkafd0001 ~]$

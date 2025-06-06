@@ -1,0 +1,321 @@
+LINUX-kstluwk06 $ cat port-check.py
+#!/usr/bin/env python
+import os
+import re
+import subprocess
+import commands
+import datetime
+import sys
+
+
+###################
+#
+# Script: To check the port connectivity
+# Date: 01/2020
+# Written By: Ram
+# Updates:
+#    1. To Do: update NTP to check UDP port as well
+#
+##################
+
+# Choose the Environment - dev,uat,prod, or dr. For now only use lower case. Comment and uncomment the below entries bases on the need
+env = 'dev'
+#env = 'prod'
+
+# Enter all the BigData Nodes from where to run these checks
+#hosts = ['ncepnhfkafa0001.hadoop.charter.com']
+#hosts = ['ncepnhfkafa0001.hadoop.charter.com', 'ncepnhfkafa0002.hadoop.charter.com', 'ncepnhfkafa0003.hadoop.charter.com']
+#hosts = ['ncepnhpmsta0001.hadoop.charter.com', 'ncepnhpmsta0002.hadoop.charter.com', 'ncepnhpwrka0001.hadoop.charter.com']
+hosts = ['ncednhpmsta0001.devhadoop.charter.com','ncednhpmsta0002.devhadoop.charter.com','ncednhpwrka0001.devhadoop.charter.com']
+
+#tcpports = [8443,8080,8886,3000,6667,6668,2181,22,25,587,465,53,161,162,389,636,88,464,3306,1521]
+
+# Ports - Desktop to all Servers
+#desktop_to_host_ports = [2181,6668,6667,6669,22,1024,8443,8080,8886,3000,21000,21443,8090,8081,8092,16010,16030,8085,9095,8765,50070,50470,50075,50475,9999,61888,11000,11443,6080,6182,9000,9060,18080,4040,18081,10030,8088,8025,8030,8141,45454,8042,8044,8188,8090,19888,9995]
+desktop_to_host_ports = [8080,8443,8886,3000,21000,21443,8090,8081,8092,16010,16030,8085,9095,8765,50070,50470,50075,50475,9999,61888,11000,11443,6080,6182,9000,9060,18080,4040,18081,10030,8088,8025,8030,8141,45454,8042,8044,8188,8190,19888,9995,2181]
+
+# Ports - All Servers to AD Servers
+host_to_ad_ports = [139,9389,749,5722,389,636,3268,3269,53,88,445,123,135,464]
+
+# Ports - All Servers to Centrify Servers
+host_to_centrify_ports = [22,88,389,636,445,464,3268,3269,80,443]
+
+# Ports - All Servers to Hortonworks Repo
+host_to_hdprepo_ports = [80,443]
+hdprepo_hosts = ['public-repo-1.hortonworks.com']
+
+# Ports - All Servers to Hortonworks Smarksense
+host_to_smartsense_ports = [2222,443]
+smartsense_hosts = ['smartsense.hortonworks.com']
+
+# Ports - All Servers to One Automation
+host_to_oneautomation_ports = [2217,2218,2219,2220,2221,2270,2271,2272,2273,2274,2275,2276,2277,2278,2279,2280,2281,2282,2283,2284,2285,2286,2287,2288,2289,2290,2300,2301,2302,8080,8870,8871,8872,8005,8009]
+oneautomation_hosts = ['142.136.64.104','142.136.64.105']
+
+# Ports - All Servers to Oracle DB
+host_to_oracle_ports = [1521]
+
+# Ports - All Servers to Mail Servers
+host_to_mail_ports = [25]
+#mail_hosts = ['mailrelay.chartercom.com']
+mail_hosts = ['142.136.234.49']
+
+# Ports - All Servers to files.charter.com
+host_to_sftp_ports = [22]
+# Hosts - SFTP
+sftp_hosts = ['files.charter.com','files.chartercom.com']
+
+# Ports - All Servers to DNS - Part of AD ports, so ignoring this
+#host_to_dns_ports = [22]
+
+# Ports - All Servers to SNMP
+#host_to_snmp_ports = [22]
+
+# Ports - All Servers to NTP
+host_to_ntp_ports = [123]
+ntp_hosts = ['67.48.224.77','165.237.86.17']
+
+# Ports - All Servers to Talend
+host_to_talend_ports = [8090,8080,22,8009,8050,8051,8052,8053,8054,8055]
+talend_hosts = ['hadpapp08.twcable.com','hadpapp09.twcable.com']
+
+# Enter all Other Ports
+#host_to_other_ports = [53,123,161,162,25(mailrelay.chartercom.com)]
+
+
+
+
+# Enter all the BigData Nodes from where to run these checks
+#hosts = ['ncepnhfkafa0001.hadoop.charter.com']
+#hosts = ['ncepnhfkafa0001.hadoop.charter.com', 'ncepnhfkafa0002.hadoop.charter.com', 'ncepnhfkafa0003.hadoop.charter.com']
+#hosts = ['ncepnhpmsta0001.hadoop.charter.com', 'ncepnhpmsta0002.hadoop.charter.com', 'ncepnhpwrka0001.hadoop.charter.com']
+
+if env == 'dev':
+   ad_servers = ['d00wutld0004.devhadoop.charter.com','d00wutld0005.devhadoop.charter.com','vm0dwwinada0001.devhadoop.charter.com','vm0dwwinada0002.devhadoop.charter.com']
+   centrify_servers = ['d00wutld0006.devhadoop.charter.com','d00wutld0007.devhadoop.charter.com','VM0DWCENTRA0001.devhadoop.charter.com','VM0DWCENTRA0002.devhadoop.charter.com']
+else:
+   #ad_servers = ['hadpapp01.hadoop.charter.com']
+   ad_servers = ['hadpapp01.hadoop.charter.com','hadpapp02.hadoop.charter.com','VM0RWWINADA0001.HADOOP.CHARTER.COM','VM0RWWINADA0002.HADOOP.CHARTER.COM','D00WUTLP0035.HADOOP.CHARTER.COM','D00WUTLP0036.HADOOP.CHARTER.COM']
+   centrify_servers = ['D00WUTLP0037.hadoop.charter.com','D00WUTLP0038.hadoop.charter.com','VM0RWCENTRA0001.hadoop.charter.com','VM0RWCENTRA0002.hadoop.charter.com','hadpapp03.hadoop.charter.com','hadpapp04.hadoop.charter.com']
+
+if env == 'dev':
+   oracle_servers = ['vm0dnoravcd0012.twcable.com','vm0dnoravcd0013.twcable.com','vm0dnoravcd0014.twcable.com','vm0dnoravcd0012-vip.twcable.com','vm0dnoravcd0013-vip.twcable.com','vm0dnoravcd0014-vip.twcable.com','ora-dev07.twcable.com']
+elif env == 'uat':
+   oracle_servers = ['vm0unoravcd0024.twcable.com','vm0unoravcd0025.twcable.com','vm0unoravcd0026.twcable.com','vm0unoravcd0024-vip.twcable.com','vm0unoravcd0025-vip.twcable.com','vm0unoravcd0026-vip.twcable.com','ora-uat54.twcable.com']
+elif env == 'prod':
+   oracle_servers = ['vm0pnoravcd0104.corp.chartercom.com','vm0pnoravcd0105.corp.chartercom.com','vm0pnoravcd0106.corp.chartercom.com','vm0pnoravcd0104-vip.corp.chartercom.com','vm0pnoravcd0105-vip.corp.chartercom.com','vm0pnoravcd0106-vip.corp.chartercom.com','ora-prod141.corp.chartercom.com']
+elif env == 'dr':
+   oracle_servers = ['vm0pnoravcd0038.twcable.com','vm0pnoravcd0039.twcable.com','vm0pnoravcd0040.twcable.com','vm0pnoravcd0038-vip.twcable.com','vm0pnoravcd0039-vip.twcable.com','vm0pnoravcd0040-vip.twcable.com','ora-prod90.twcable.com']
+
+print "===== Checking Desktop to Host ports ====="
+for host in hosts:
+   print '----- Desktop to ' + host + '-----'
+   for port in desktop_to_host_ports:
+    command = "/usr/bin/nmap -Pn -p" + str(port) + " " + host + "|grep tcp"
+    out = commands.getoutput(command)
+    porttemp,status,rest = out.split()
+    port,tcp = porttemp.split('/')
+    if status == 'filtered':
+      print port, "\033[44;33m" + status + "\033[m"
+    else:
+      print port, status
+
+print "===== Checking Host to AD Server ports ====="
+for host in hosts:
+   #print '-----' + host + '-----'
+   for ad in ad_servers:
+      ports = ",".join(str(port) for port in host_to_ad_ports)
+      print '-----' + host + ' to AD - ' + ad + '-----'
+      #command = "hostname -f;uptime"
+      command = "/usr/bin/nmap -Pn -p" + str(ports) + " " + ad + "|grep tcp"
+      #print command
+      out = subprocess.Popen("ssh -tq {user}@{host1} {cmd1}".format(user='p2731345', host1=host, cmd1=command), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+
+      #print out
+      #new_out = list(out.split('\\r\\n'))
+      #new_out = [str(i) for i in out.split('\r\n')]
+      #new_out = re.sub(r"\r\n", " ", str(out))
+      #new_out = str(out).replace('\r\n', ' ')
+      #out = out.replace("\r\n"," ")
+      #out = str(out).replace("\n"," ")
+      #print new_out
+      temp = out[0].split("\r\n")
+      temp = temp[:-1]
+      for t in temp:
+        porttemp,status,rest = t.split()
+        #print porttemp
+        port,tcp = porttemp.split('/')
+        if status == 'filtered':
+           print port, "\033[44;33m" + status + "\033[m"
+        else:
+           print port, status
+
+print "===== Checking Host to Centrify Server ports ====="
+for host in hosts:
+   for centrify in centrify_servers:
+      ports = ",".join(str(port) for port in host_to_centrify_ports)
+      print '-----' + host + ' to Centrify - ' + centrify + '-----'
+      command = "/usr/bin/nmap -Pn -p" + str(ports) + " " + centrify + "|grep tcp"
+      out = subprocess.Popen("ssh -tq {user}@{host1} {cmd1}".format(user='p2731345', host1=host, cmd1=command), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+      temp = out[0].split("\r\n")
+      temp = temp[:-1]
+      for t in temp:
+        porttemp,status,rest = t.split()
+        port,tcp = porttemp.split('/')
+        if status == 'filtered':
+           print port, "\033[44;33m" + status + "\033[m"
+        else:
+           print port, status
+
+print "===== Checking Host to Oracle Server ports ====="
+for host in hosts:
+   for oracle in oracle_servers:
+      ports = ",".join(str(port) for port in host_to_oracle_ports)
+      print '-----' + host + ' to Oracle ' + oracle + '-----'
+      command = "/usr/bin/nmap -Pn -p" + str(ports) + " " + oracle + "|grep tcp"
+      out = subprocess.Popen("ssh -tq {user}@{host1} {cmd1}".format(user='p2731345', host1=host, cmd1=command), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+      temp = out[0].split("\r\n")
+      temp = temp[:-1]
+      for t in temp:
+        porttemp,status,rest = t.split()
+        #print porttemp
+        port,tcp = porttemp.split('/')
+        if status == 'filtered':
+           print port, "\033[44;33m" + status + "\033[m"
+        else:
+           print port, status
+
+print "===== Checking Host to SFTP Server ports ====="
+for host in hosts:
+   for sftp in sftp_hosts:
+      ports = ",".join(str(port) for port in host_to_sftp_ports)
+      print '-----' + host + ' to SFTP ' + sftp + '-----'
+      command = "/usr/bin/nmap -Pn -p" + str(ports) + " " + sftp + "|grep tcp"
+      out = subprocess.Popen("ssh -tq {user}@{host1} {cmd1}".format(user='p2731345', host1=host, cmd1=command), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+      temp = out[0].split("\r\n")
+      temp = temp[:-1]
+      for t in temp:
+        porttemp,status,rest = t.split()
+        port,tcp = porttemp.split('/')
+        if status == 'filtered':
+           print port, "\033[44;33m" + status + "\033[m"
+        else:
+           print port, status
+
+
+print "===== Checking Host to MAIL Server ports ====="
+for host in hosts:
+   for mail in mail_hosts:
+      ports = ",".join(str(port) for port in host_to_mail_ports)
+      print '-----' + host + ' to Mail ' + mail + '-----'
+      command = "/usr/bin/nmap -Pn -p" + str(ports) + " " + mail + "|grep tcp"
+      #command = "/usr/bin/nmap -Pn -p25 " +  mail + " |grep tcp"
+      out = subprocess.Popen("ssh -tq {user}@{host1} {cmd1}".format(user='p2731345', host1=host, cmd1=command), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+      temp = out[0].split("\r\n")
+      temp = temp[:-1]
+      for t in temp:
+        porttemp,status,rest = t.split()
+        port,tcp = porttemp.split('/')
+        if status == 'filtered':
+           print port, "\033[44;33m" + status + "\033[m"
+        else:
+           print port, status
+
+
+print "===== Checking Host to Hortonworks Repo Server ports ====="
+for host in hosts:
+   for hdp in hdprepo_hosts:
+      ports = ",".join(str(port) for port in host_to_hdprepo_ports)
+      print '-----' + host + ' to Hortonworks Repo ' + hdp + '-----'
+      command = "/usr/bin/nmap -Pn -p" + str(ports) + " " + hdp + "|grep tcp"
+      out = subprocess.Popen("ssh -tq {user}@{host1} {cmd1}".format(user='p2731345', host1=host, cmd1=command), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+      temp = out[0].split("\r\n")
+      temp = temp[:-1]
+      for t in temp:
+        porttemp,status,rest = t.split()
+        #print porttemp
+        port,tcp = porttemp.split('/')
+        if status == 'filtered':
+           print port, "\033[44;33m" + status + "\033[m"
+        else:
+           print port, status
+
+print "===== Checking Host to Hortonworks SmartSense Server ports ====="
+for host in hosts:
+   for smartsense in smartsense_hosts:
+      ports = ",".join(str(port) for port in host_to_smartsense_ports)
+      print '-----' + host + ' to Hortonworks SmartSense ' + smartsense + '-----'
+      command = "/usr/bin/nmap -Pn -p" + str(ports) + " " + smartsense + "|grep tcp"
+      out = subprocess.Popen("ssh -tq {user}@{host1} {cmd1}".format(user='p2731345', host1=host, cmd1=command), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+      temp = out[0].split("\r\n")
+      temp = temp[:-1]
+      for t in temp:
+        porttemp,status,rest = t.split()
+        #print porttemp
+        port,tcp = porttemp.split('/')
+        if status == 'filtered':
+           print port, "\033[44;33m" + status + "\033[m"
+        else:
+           print port, status
+
+print "===== Checking Host to Talend Server ports ====="
+for host in hosts:
+   for talend in talend_hosts:
+      ports = ",".join(str(port) for port in host_to_talend_ports)
+      print '-----' + host + ' to Talend ' + talend + '-----'
+      command = "/usr/bin/nmap -Pn -p" + str(ports) + " " + talend + "|grep tcp"
+      out = subprocess.Popen("ssh -tq {user}@{host1} {cmd1}".format(user='p2731345', host1=host, cmd1=command), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+      temp = out[0].split("\r\n")
+      temp = temp[:-1]
+      for t in temp:
+        porttemp,status,rest = t.split()
+        #print porttemp
+        port,tcp = porttemp.split('/')
+        if status == 'filtered':
+           print port, "\033[44;33m" + status + "\033[m"
+        else:
+           print port, status
+
+print "===== Checking Host to One Automation Server ports ====="
+for host in hosts:
+   for oneautomation in oneautomation_hosts:
+      ports = ",".join(str(port) for port in host_to_oneautomation_ports)
+      print '-----' + host + ' to One Automation ' + oneautomation + '-----'
+      command = "/usr/bin/nmap -Pn -p" + str(ports) + " " + oneautomation + "|grep tcp"
+      out = subprocess.Popen("ssh -tq {user}@{host1} {cmd1}".format(user='p2731345', host1=host, cmd1=command), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+      temp = out[0].split("\r\n")
+      temp = temp[:-1]
+      for t in temp:
+        porttemp,status,rest = t.split()
+        #print porttemp
+        port,tcp = porttemp.split('/')
+        if status == 'filtered':
+           print port, "\033[44;33m" + status + "\033[m"
+        else:
+           print port, status
+
+#print "===== Checking Host to NTP Server ports ====="
+#for host in hosts:
+#   for ntp in ntp_hosts:
+#      ports = ",".join(str(port) for port in host_to_ntp_ports)
+#      print '-----' + host + ' to NTP ' + ntp + '-----'
+#      command = "/usr/bin/nmap -Pn -p" + str(ports) + " " + ntp + "|grep tcp"
+#      out = subprocess.Popen("ssh -tq {user}@{host1} {cmd1}".format(user='p2731345', host1=host, cmd1=command), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+#      temp = out[0].split("\r\n")
+#      temp = temp[:-1]
+#      for t in temp:
+#        porttemp,status,rest = t.split()
+#        #print porttemp
+#        port,tcp = porttemp.split('/')
+#        if status == 'filtered':
+#           print port, "\033[44;33m" + status + "\033[m"
+#        else:
+#           print port, status
+
+
+#subprocess.Popen("ssh {user}@{host} {cmd}".format(user=user, host=host, cmd='ls -l'), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+#print subprocess.Popen("ssh {user}@{host} {cmd}".format(user='p2731345', host='ncepnhfkafa0001.hadoop.charter.com', cmd='/usr/bin/nmap -Pn -p389,636,88,464,1024 hadpapp01.hadoop.charter.com |grep tcp'), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+
+#commands.getstatusoutput("ssh machine 1 'your script'")
+#print commands.getstatusoutput("ssh -tq p2731345@ncepnhfkafa0001.hadoop.charter.com '/usr/bin/nmap -Pn -p389,636,88,464,1024 hadpapp01.hadoop.charter.com |grep tcp'")
+LINUX-kstluwk06 $

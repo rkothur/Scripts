@@ -1,0 +1,252 @@
+[svc-bdadmin@ncepnhpmsta0002 scripts]$ cat remote-host-prechecks.ksh
+#!/bin/ksh
+
+###################
+#
+# Script to run the OS prechecks on the remote hosts
+# Written by: Ram
+# Date:
+#
+###################
+
+#### Variables used in the script
+#### Note: Do not modify these variabes
+PATH=/usr/share/centrifydc/bin/:/bin:/usr/bin:/sbin:/usr/sbin:/opt/VRTS/bin:/usr/sbin/hbanyware
+export PATH
+NOW=$(date +"%Y%m%d-%H%M")
+HST=$(hostname)
+BOLD=`tput smso`
+OFFBOLD=`tput rmso`;
+OUTDIR="/bigdata/scripts"
+OUTFILE="${OUTDIR}/remotehost-prechecks-${HST}-${NOW}.txt"
+TAB="\t"
+NEWLN="\n"
+HEADER="############"
+
+##### Change the ansible hosts file if different
+#export ANSIBLE_INVENTORY=/bigdata/scripts/hosts.txt
+
+#====================================
+# Verify if svc-bdadmin is running the script
+#=====================================
+CHUSER=$(whoami)
+if [ "$CHUSER" != "svc-bdadmin" ]
+  then
+    echo
+    echo "Sorry you must run the script as svc-bdadmin user"
+    echo
+    exit 1
+fi
+
+rm -rf /bigdata/scripts/remotehost-prechecks-*.txt
+
+
+case "$HST" in
+    *edg* ) ROLE="Edge" ;;
+    *wrk* ) ROLE="Data" ;;
+    *mst* ) ROLE="Master" ;;
+    *nam* ) ROLE="Name" ;;
+    *kaf* ) ROLE="Kafka" ;;
+    *hbs* ) ROLE="HBase" ;;
+    *nif* ) ROLE="Nifi" ;;
+esac
+
+echo "ROLE: $ROLE" | tee -a $OUTFILE
+
+#====================================
+# Date set to UTC
+#=====================================
+DT=$(date | awk '{print $5}')
+echo "TIMEZ: $DT" | tee -a $OUTFILE
+
+#====================================
+# Mount Points
+#=====================================
+echo "Mount Points: " |tee -a $OUTFILE
+df -h |egrep '\/data|\/hbase' |tee -a $OUTFILE
+
+#====================================
+# FileSystem Types
+#=====================================
+echo "FS Type: " |tee -a $OUTFILE
+mount |egrep '\/data|\/hbase' |tee -a $OUTFILE
+
+#====================================
+# NTP Status
+#=====================================
+NTPS=$(dzdo systemctl status ntpd |grep Active)
+echo "NTPS: $NTPS" |tee -a $OUTFILE
+
+#====================================
+# DNS Servers
+#=====================================
+DNSSRVR=$(cat /etc/resolv.conf |grep nameserver |grep -v "#" |awk '{print $2}'|xargs)
+echo "DNSSRVR: $DNSSRVR"|tee -a $OUTFILE
+
+#====================================
+# DNS Enabled
+#=====================================
+DNSENABLED=$(grep ^hosts /etc/nsswitch.conf |grep -v "#" |awk '{print $2,$3}')
+echo "DNSENABLED: $DNSENABLED" |tee -a $OUTFILE
+
+#====================================
+# RPMS Installed
+#=====================================
+RPMS="wget krb5-workstation openssl openldap python2.7 mlocate bind-utils"
+for i in `echo $RPMS`
+do
+   echo RPM-$i: `rpm -qa |grep ^$i`
+done |tee -a $OUTFILE
+
+#====================================
+# Centrify Checks
+#=====================================
+CENTRIFYS=$(dzdo systemctl status centrifydc |grep Active)
+echo "CENTRIFYS: $CENTRIFYS" |tee -a $OUTFILE
+CENTRIFYU=$(adquery user p2731345)
+echo "CENTRIFYU: $CENTRIFYU" |tee -a $OUTFILE
+
+#====================================
+# Disable Firewall
+#=====================================
+FIREWALLS=$(dzdo systemctl status firewalld |grep Active)
+echo "FIREWALLS: $FIREWALLS" |tee -a $OUTFILE
+
+#====================================
+# Disable IPv6
+#=====================================
+INET6=$(ifconfig bond0 |grep inet6)
+echo "INET6: $INET6" |tee -a $OUTFILE
+HOST_INET6=$(grep ::1 /etc/hosts)
+echo "HOST_INT6: $HOST_INET6" |tee -a $OUTFILE
+
+#====================================
+# Disable SeLinux
+#=====================================
+SELINUX=$(getenforce)
+echo "SELINUX: $SELINUX" |tee -a $OUTFILE
+
+#====================================
+# Disable THP
+#=====================================
+TSP1=$(cat /sys/kernel/mm/transparent_hugepage/enabled)
+TSP2=$(cat /sys/kernel/mm/transparent_hugepage/defrag)
+TSPFILE=$(cat /etc/rc.d/rc.local |egrep -v '#|lock')
+echo "TSP1: $TSP1" |tee -a $OUTFILE
+echo "TSP2: $TSP2" |tee -a $OUTFILE
+echo "TSPFILE: $TSPFILE" |tee -a $OUTFILE
+
+#====================================
+# http SPN check
+#=====================================
+HTTPSPN=$(dzdo adinfo -C |grep http)
+echo "HTTPSPN: $HTTPSPN" |tee -a $OUTFILE
+
+#====================================
+# sysctl settings
+#=====================================
+dzdo sysctl vm.swappiness |tee -a $OUTFILE
+dzdo sysctl net.ipv6.conf.all.disable_ipv6 |tee -a $OUTFILE
+dzdo sysctl net.ipv6.conf.default.disable_ipv6 |tee -a $OUTFILE
+dzdo sysctl vm.dirty_ratio |tee -a $OUTFILE
+dzdo sysctl vm.dirty_background_ratio | tee -a $OUTFILE
+dzdo sysctl net.core.wmem_default |tee -a $OUTFILE
+dzdo sysctl net.core.rmem_default |tee -a $OUTFILE
+dzdo sysctl net.core.wmem_max |tee -a $OUTFILE
+dzdo sysctl net.core.rmem_max |tee -a $OUTFILE
+dzdo sysctl net.ipv4.tcp_wmem |tee -a $OUTFILE
+dzdo sysctl net.ipv4.tcp_rmem |tee -a $OUTFILE
+dzdo sysctl net.ipv4.tcp_window_scaling |tee -a $OUTFILE
+dzdo sysctl net.ipv4.tcp_max_syn_backlog |tee -a $OUTFILE
+dzdo sysctl net.core.netdev_max_backlog |tee -a $OUTFILE
+dzdo sysctl net.core.somaxconn |tee -a $OUTFILE
+
+#====================================
+# CPU Cores
+#=====================================
+CPUCORES=$(grep -c proc /proc/cpuinfo)
+echo "CPUCORES: $CPUCORES" |tee -a $OUTFILE
+
+#====================================
+# Memory
+#=====================================
+MEMTOTALKB=$(grep MemTotal /proc/meminfo |awk -F: '{print $2}'|awk '{print $1}')
+echo "MEMTOTALKB: $MEMTOTALKB" |tee -a $OUTFILE
+
+#====================================
+# /bigdata Mount
+#=====================================
+grep /bigdata /etc/fstab > /dev/null
+if [ $? -ne 0 ];
+then
+   echo "BIGDATA_FS: Null" |tee -a $OUTFILE
+else
+   echo "BIGDATA_FS: Exists" |tee -a $OUTFILE
+   BIGDATA_SIZE=$(2>/dev/null df -h /bigdata |grep -v Size|awk '{print $2}')
+   echo "BIGDATA_SIZE: $BIGDATA_SIZE" |tee -a $OUTFILE
+fi
+
+#====================================
+# Disable NTP in Centrify
+#=====================================
+CENTRIFY_NTP=$(grep ^adclient.sntp.enabled /etc/centrifydc/centrifydc.conf)
+if [[ -z "$CENTRIFY_NTP" ]];
+then
+   CENTRIFY_NTP="NOTSET"
+fi
+echo "CENTRIFY_NTP: $CENTRIFY_NTP" |tee -a $OUTFILE
+
+#====================================
+#  Check /usr/hdp(hdf) mount point and size
+#=====================================
+
+if [ $ROLE == "Kafka" ] || [ $ROLE = "Nifi" ]
+then
+   grep /usr/hdf /etc/fstab > /dev/null
+   if [ $? -ne 0 ];
+   then
+     echo "HDF_FS: Null" |tee -a $OUTFILE
+   else
+     echo "HDF_FS: Exists" |tee -a $OUTFILE
+     HDF_SIZE=$(df -h /usr/hdp|grep -v Size |awk '{print $2}')
+     echo "HDF_SIZE: $HDF_SIZE" |tee -a $OUTFILE
+   fi
+else
+   grep /usr/hdp /etc/fstab > /dev/null
+   if [ $? -ne 0 ];
+   then
+     echo "HDP_FS: Null" |tee -a $OUTFILE
+   else
+     echo "HDP_FS: Exists" |tee -a $OUTFILE
+     HDP_SIZE=$(df -h /usr/hdp|grep -v Size |awk '{print $2}')
+     echo "HDP_SIZE: $HDP_SIZE" |tee -a $OUTFILE
+   fi
+fi
+
+#====================================
+#  Check /var/log mount point and size
+#=====================================
+grep /var/log /etc/fstab > /dev/null
+if [ $? -ne 0 ];
+then
+  echo "VARLOG_FS: Null" |tee -a $OUTFILE
+else
+  echo "VARLOG_FS: Exists" |tee -a $OUTFILE
+  VARLOG_SIZE=$(df -h /var/log |grep -v Size |awk '{print $2}')
+  echo "VARLOG_SIZE: $VARLOG_SIZE" |tee -a $OUTFILE
+fi
+
+#====================================
+#  Check OS Version
+#=====================================
+OSVER=$(cat /etc/redhat-release |awk '{print $7}')
+echo "OSVER: $OSVER" |tee -a $OUTFILE
+
+
+
+#====================================
+# RHN Subscription
+#=====================================
+RHN_REG=$(dzdo subscription-manager status |grep Overall|awk -F":" '{print $2}')
+echo "RHN_REG:$RHN_REG" |tee -a $OUTFILE
+[svc-bdadmin@ncepnhpmsta0002 scripts]$

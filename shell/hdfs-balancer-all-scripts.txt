@@ -1,0 +1,114 @@
+[hdfs@ncepnmomsta0001 ~]$ crontab -l
+* */8 * * * /var/lib/hadoop-hdfs/keytab_renewal.sh
+0 15 * * 6 /var/lib/hadoop-hdfs/hdfs_balancer_threshold_10.sh
+0 03 * * 1 /var/lib/hadoop-hdfs/hdfs_balancer_kill.sh
+0 */2 * * 6,0 /var/lib/hadoop-hdfs/balancer_status_notification.sh
+
+
+[hdfs@ncepnmomsta0001 ~]$ cat /var/lib/hadoop-hdfs/keytab_renewal.sh
+#!/bin/bash
+kinit -kt /var/lib/hadoop-hdfs/hdfs.keytab hdfs/ncepnmonama0002.hadoop.charter.com@HADOOP.CHARTER.COM
+
+
+[hdfs@ncepnmomsta0001 ~]$ cat /var/lib/hadoop-hdfs/hdfs_balancer_threshold_10.sh
+#!/bin/bash
+/bin/hdfs dfsadmin -setBalancerBandwidth 5368709120
+export HADOOP_CLIENT_OPTS="-Xmx10048m $HADOOP_CLIENT_OPTS"
+export HADOOP_BALANCER_OPTS="-Xmx8092m $HADOOP_BALANCER_OPTS"
+
+/bin/nohup \
+/bin/hdfs balancer \
+-Ddfs.balancer.moverThreads=3000 \
+-Ddfs.balancer.dispatcherThreads=800 \
+-Ddfs.datanode.balance.max.concurrent.moves=100 \
+-Ddfs.datanode.balance.bandwidthPerSec=5368709120 \
+-Ddfs.balancer.max-size-to-move=32212238227 \
+-threshold 10 \
+1>/data/02/hdfsbalancer/log/balancer-out-`date +"%Y%m%d-%H%M"`.log 2>/data/02/hdfsbalancer/log/balancer-debug-`date +"%Y%m%d-%H%M"`.log &
+
+balancer_server=$(hostname -f)
+EMAIL=DL-Corp-IT-BigData-Admins@charter.com
+CLUSTER_NAME="SMDH-PROD"
+send_email_alert() {
+
+         SUBJECT="$CLUSTER_NAME - HDFS Balancer Operation Started"
+         echo "Please monitor the balancer status on $balancer_server" | mailx -s "$SUBJECT" $EMAIL
+}
+
+echo "###################### START #####################"
+send_email_alert
+echo "###################### DONE #####################"
+
+
+[hdfs@ncepnmomsta0001 ~]$ cat /var/lib/hadoop-hdfs/hdfs_balancer_kill.sh
+#!/bin/bash
+
+#Kill the active HDFS  balancer operation
+/bin/pgrep -f proc_balancer
+#/bin/pgrep -f grafana-server
+status=$?
+
+balancer_pid=`/bin/pgrep -f proc_balancer`
+#balancer_pid=`/bin/pgrep -f grafana-server`
+
+EMAIL=DL-Corp-IT-BigData-Admins@charter.com
+CLUSTER_NAME="SMDH-PROD"
+balancer_server=$(hostname -f)
+send_email_alert() {
+
+         SUBJECT="$CLUSTER_NAME - HDFS Balancer Operation is completed"
+         echo "The Balancer Operation is stopped as per this week schedule" | mailx -s "$SUBJECT" $EMAIL
+}
+
+send_fail_email_alert() {
+
+         SUBJECT="$CLUSTER_NAME - HDFS Balancer Operation Check required"
+         echo "Please check the HDFS Balancer operation on $balancer_server. And stop the process if running" | mailx -s "$SUBJECT" $EMAIL
+}
+
+if  [[ $status -eq 0 ]] ; then
+
+kill -9 $balancer_pid
+
+  if  [[ $? -eq 0 ]] ; then
+        send_email_alert
+        echo "The HDFS Balancer process $balancer_pid has been killed"
+
+     else
+        send_fail_email_alert
+        echo "this HDFS Balancer process $balancer_pid has to be checked"
+
+        fi
+
+  fi
+
+
+[hdfs@ncepnmomsta0001 ~]$ cat /var/lib/hadoop-hdfs/balancer_status_notification.sh
+#!/bin/bash
+
+today_date=$(date +%Y%m%d)
+#balancer_status_file=`ls -ld /data/02/hdfsbalancer/log/* | grep -i balancer-out | grep -i $today_date | tail -n 1 | awk '{print $9}'`
+CLUSTER_NAME="SMDH-PROD"
+EMAIL=DL-Corp-IT-BigData-Admins@charter.com
+balancer_status_file=`find /data/02/hdfsbalancer/log/ -name "*balancer-out*" -mtime -2 | tail -n 1`
+
+balancer_server=$(hostname -f)
+
+send_email_alert() {
+
+        if [ -f "$balancer_status_file" ]; then
+         SUBJECT="$CLUSTER_NAME - HDFS Balancer Operation Status Update"
+         ((head -n1 && tail -n3) < $balancer_status_file) | mailx -s "$SUBJECT" $EMAIL
+
+        else
+        SUBJECT="$CLUSTER_NAME - MANUAL ACTION NEEDED : Balancer Operation is not running"
+        echo "Please check HDFS Balancer Operation Status on $balancer_server" | mailx -s "$SUBJECT" $EMAIL
+        fi
+
+}
+
+echo "###################### START #####################"
+send_email_alert
+echo "###################### DONE #####################"
+
+[hdfs@ncepnmomsta0001 ~]$

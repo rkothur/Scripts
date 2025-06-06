@@ -1,0 +1,91 @@
+[p2731345@ncepnhpmsta0002 BI]$ pwd
+/bigdata/scripts/BI
+[p2731345@ncepnhpmsta0002 BI]$ ll
+total 8
+-rwxr-xr-x 1 svc-bdadmin svc-bdadmin 3968 Jul 26 18:33 bi-audit-script.sh
+drwxrwxrwx 2 svc-bdadmin svc-bdadmin 4096 Jul 26 18:40 bi-reports
+[p2731345@ncepnhpmsta0002 BI]$ cat bi-audit-script.sh
+#!/bin/bash
+
+#######################
+# Description: Script to Generate Audit Report for the BI team and copy the files to their desired destination
+# Author: Ram Kothur
+# Date: May 2021
+# How to:
+#   1. The user has to run kinit before running the script for the beeline to work
+#   2. The script will also ask for user's PID/password (For Hadoop domain) to login to ranger and retrieve the policies
+#   3. Output is stored in /bigdata/scripts/BI/bi-reports/
+#       bi-users-<date>-<time> -  User/Group list
+#       bi-tables-<date>-<time> - DB and tables list
+#       bi-ranger-<date>-<time> - Ranger polices
+#   4. The above three files will be copied to ncepnhpedga0003.hadoop.charter.com:/XDW-PRD-02/STG_GOV/ location
+#######################
+
+NOW=$(date +"%Y-%m-%d-%H:%M")
+USR_FILE=/bigdata/scripts/BI/bi-reports/bi-users-${NOW}.txt
+TABLE_FILE=/bigdata/scripts/BI/bi-reports/bi-tables-${NOW}.txt
+RANGER_FILE=/bigdata/scripts/BI/bi-reports/bi-ranger-${NOW}.txt
+ALL_CSV=/bigdata/scripts/BI/bi-reports/all.csv
+BI_CSV=/bigdata/scripts/BI/bi-reports/bi.csv
+
+#Add databases to the below DATABASES line with spaces and within double quotes
+#DATABASES="hbi_pii hbi_poc"
+DATABASES="hbi_pii hbi_stg hbi_viewr_rptg hbi_subscr hbi_utils hbi_poc hbi_ref hbi_work hbi_mobl hbi_viewrrptg_prod_cii hbi_etl_log hbi_cust_ops_sbx hbi_mkt_anltcs_sbx hbi_mkt_sbx hbi_mobl_sbx hbi_revn_asnce_sbx hbi_supl_chn_sbx hbi_viewr_rptg_sbx hbi_viewrrptg_prod_vdl1 hbi_uat_pii hbi_uat_stg hbi_uat_viewr_rptg hbi_uat_subscr hbi_uat_utils hbi_uat_poc hbi_uat_ref hbi_uat_work hbi_uat_mobl hbi_uat_viewrrptg_prod_cii hbi_uat_etl_log dl_per dl_ala_v dl_xbi_v foa_prod dl_reach_v dl_tda_v"
+
+
+# Gather DB/tables info
+echo "Gather DB/Table Info..."
+echo ""
+
+for DB in $DATABASES
+do
+   TABLES=$(2>/dev/null beeline -u "jdbc:hive2://ncepnhpnama0001.hadoop.charter.com:2181,ncepnhpmsta0002.hadoop.charter.com:2181,ncepnhpmsta0001.hadoop.charter.com:2181/;serviceDiscoveryMode=zooKeeper;zooKeeperNamespace=hiveserver2" -e "use $DB;show tables;"|grep "^|"|grep -v tab_name|sed 's/|//g')
+  for TABLE in $TABLES
+  do
+    echo $DB"|"$TABLE >> $TABLE_FILE
+  done
+done
+
+## Gather Ranger policies
+echo "Gather Ranger Policies..."
+echo ""
+read -p "Enter Username: " USER
+read -s -p "Enter Password: " PASSWD
+echo
+
+curl -k -u ${USER}:${PASSWD} -X GET  -o $ALL_CSV "https://ncepnhpmsta0002.hadoop.charter.com:6182/service/plugins/policies/csv"
+
+cat $ALL_CSV |egrep "hbi_\*|database=\[\*\]|hbi_pii| hbi_stg|hbi_viewr_rptg|hbi_subscr|hbi_utils|hbi_poc|hbi_ref|hbi_work|hbi_mobl|hbi_viewrrptg_prod_cii|hbi_etl_log|hbi_cust_ops_sbx|hbi_mkt_anltcs_sbx|hbi_mkt_sbx|hbi_mobl_sbx|hbi_revn_asnce_sbx|hbi_supl_chn_sbx|hbi_viewr_rptg_sbx|hbi_viewrrptg_prod_vdl1|hbi_uat_pii|hbi_uat_stg|hbi_uat_viewr_rptg|hbi_uat_subscr|hbi_uat_utils|hbi_uat_poc|hbi_uat_ref|hbi_uat_work|hbi_uat_mobl|hbi_uat_viewrrptg_prod_cii|hbi_uat_etl_log|dl_per|dl_ala_v|dl_xbi_v|foa_prod dl|reach_v|dl_tda_v" |awk -F"|" '{print $3,"|",$4,"|",$5,"|",$6,"|",$7,"|",$14}'|sed  's/#/,/g' |awk -F"|" '$5 ~ /hive/ {print $0}' > $BI_CSV
+
+cat $BI_CSV | awk -F"|" '{split($2,arr,","); for(e in arr) print($1,"|",arr[e],"|",$3,"|",$4,"|",$5,"|",$6)}'|awk -F"|" '{split($3,arr,","); for(e in arr) print($1,"|",$2,"|",arr[e],"|",$4,"|",$5,"|",$6)}' > $RANGER_FILE
+
+
+#Gather User/Group Info
+echo ""
+echo "Gather User/Group Info..."
+echo ""
+GRPS=$(cat $RANGER_FILE | awk -F '|' '{print $2}' | awk '{$1=$1};1' | sort | uniq | awk 'NF'|xargs)
+
+
+for GRP in $GRPS
+do
+   USRS=$(adquery group $GRP|awk -F: '{print $4}'| sed 's/,/ /g')
+   for USR in $USRS
+   do
+     read -r ID NAME<<<$(adquery user $USR|awk -F: '{print $1, $5}')
+     echo $GRP"|"$ID"|"$NAME >> $USR_FILE
+   done
+done
+
+#Copy files to XDL location
+echo "Copy files to ncepnhpedga0003.hadoop.charter.com:/XDW-PRD-02/STG_GOV/"
+echo ""
+#dzdo su - svc-bdadmin<<EOF
+#scp $RANGER_FILE $USR_FILE $TABLE_FILE ncepnhpedga0003.hadoop.charter.com:/XDW-PRD-02/STG_GOV/
+#EOF
+
+# Delete temp files
+rm $BI_CSV
+rm $ALL_CSV
+
+[p2731345@ncepnhpmsta0002 BI]$

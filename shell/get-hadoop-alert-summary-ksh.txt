@@ -1,0 +1,300 @@
+HDP/HDF alert summary script:
+
+LINUX-kstluwk06 $ cat /home/rkothur/get-hadoop-alert-summary.ksh
+#!/bin/bash
+
+OUTFILE=./alerts.out
+HOSTFILE=./hosts.out
+SQLFILE=./alerts.sql
+HDFSFILE=./alerts-hdfs.txt
+EMAIL="DL-Corp-IT-BigData-Admins@charter.com"
+#EMAIL="ramakrishna.kothur1@charter.com"
+NOW=$(date +"%Y-%m-%d %H:%M")
+
+>$OUTFILE
+>$HOSTFILE
+>$SQLFILE
+>$HDFSFILE
+
+CLUSTERNAME="SDataLake_DEV"
+CLUSTERHOST="ncednhpmsta0002.devhadoop.charter.com"
+CLUSTERPORT=8443
+CLUSTERPATH="/api/v1/clusters/${CLUSTERNAME}?fields=alerts_summary"
+read -r C M U W <<<$(curl -s -k -n -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}${CLUSTERPATH} |egrep 'CRITICAL|MAINTENANCE|UNKNOWN|WARNING'|awk -F":" '{print $2}'|sed 's/,//')
+echo "$CLUSTERNAME,$C,$M,$U,$W" >> $OUTFILE
+HOSTS=$(curl -s -k -n -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}/api/v1/clusters/${CLUSTERNAME}/hosts?Hosts/host_status=UNHEALTHY |grep host_name|awk -F":" '{print $2}'|sed 's/"//g'|sed 's/,//'|xargs)
+echo "$CLUSTERNAME,$HOSTS" >> $HOSTFILE
+
+SDL_API1="/jmx?qry=Hadoop:service=NameNode,name=FSNamesystem"
+SDL_API2="/jmx?qry=Hadoop:service=NameNode,name=FSNamesystemState"
+
+
+#### HDFS blocks/stale nodes
+SDL_DEV_NN=ncednhpnama0002.devhadoop.charter.com
+SDL_DEV_NN_PORT=50470
+read -r MISS UNDER CORRUPT STALEDN <<<$(curl -s -k "https://${SDL_DEV_NN}:${SDL_DEV_NN_PORT}${SDL_API1}" |egrep 'MissingBlocks|UnderReplicatedBlocks|CorruptBlocks|StaleDataNodes'|awk -F":" '{print $2}'|sed 's/,//')
+read -r NUMDEADDN VOLFAIL <<<$(curl -s -k "https://${SDL_DEV_NN}:${SDL_DEV_NN_PORT}${SDL_API2}"| egrep 'NumDeadDataNodes|VolumeFailuresTotal' |awk -F":" '{print $2}'|sed 's/,//')
+echo "$CLUSTERNAME,$MISS,$UNDER,$CORRUPT,$STALEDN,$NUMDEADDN,$VOLFAIL" >> $HDFSFILE
+
+
+CLUSTERNAME="SDataLake_UAT"
+CLUSTERHOST="ncwunhpmsta0002.hadoop.charter.com"
+CLUSTERPORT=8443
+CLUSTERPATH="/api/v1/clusters/${CLUSTERNAME}?fields=alerts_summary"
+read -r C M U W <<<$(curl -s -k -n -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}${CLUSTERPATH} |egrep 'CRITICAL|MAINTENANCE|UNKNOWN|WARNING'|awk -F":" '{print $2}'|sed 's/,//')
+echo "$CLUSTERNAME,$C,$M,$U,$W" >> $OUTFILE
+HOSTS=$(curl -s -k -n -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}/api/v1/clusters/${CLUSTERNAME}/hosts?Hosts/host_status=UNHEALTHY |grep host_name|awk -F":" '{print $2}'|sed 's/"//g'|sed 's/,//'|xargs)
+echo "$CLUSTERNAME,$HOSTS" >> $HOSTFILE
+
+#### HDFS blocks/stale nodes
+XMBI_DR_NN=ncwunhpnama0102.hadoop.charter.com
+SDL_UAT_NN_PORT=50470
+read -r MISS UNDER CORRUPT STALEDN <<<$(curl -s -k "https://${XMBI_DR_NN}:${SDL_UAT_NN_PORT}${SDL_API1}" |egrep 'MissingBlocks|UnderReplicatedBlocks|CorruptBlocks|StaleDataNodes'|awk -F":" '{print $2}'|sed 's/,//')
+read -r NUMDEADDN VOLFAIL <<<$(curl -s -k "https://${XMBI_DR_NN}:${SDL_UAT_NN_PORT}${SDL_API2}"| egrep 'NumDeadDataNodes|VolumeFailuresTotal' |awk -F":" '{print $2}'|sed 's/,//')
+echo "$CLUSTERNAME,$MISS,$UNDER,$CORRUPT,$STALEDN,$NUMDEADDN,$VOLFAIL" >> $HDFSFILE
+
+
+CLUSTERNAME="SDataLake_PROD"
+CLUSTERHOST="ncepnhpmsta0002.hadoop.charter.com"
+CLUSTERPORT=8443
+CLUSTERPATH="/api/v1/clusters/${CLUSTERNAME}?fields=alerts_summary"
+read -r C M U W <<<$(curl -s -k -n -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}${CLUSTERPATH} |egrep 'CRITICAL|MAINTENANCE|UNKNOWN|WARNING'|awk -F":" '{print $2}'|sed 's/,//')
+echo "$CLUSTERNAME,$C,$M,$U,$W" >> $OUTFILE
+HOSTS=$(curl -s -k -n -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}/api/v1/clusters/${CLUSTERNAME}/hosts?Hosts/host_status=UNHEALTHY |grep host_name|awk -F":" '{print $2}'|sed 's/"//g'|sed 's/,//'|xargs)
+echo "$CLUSTERNAME,$HOSTS" >> $HOSTFILE
+
+#### HDFS blocks/stale nodes
+SDL_PRD_NN=ncepnhpnama0002.hadoop.charter.com
+SDL_PRD_NN_PORT=50470
+read -r MISS UNDER CORRUPT STALEDN <<<$(curl -s -k "https://${SDL_PRD_NN}:${SDL_PRD_NN_PORT}${SDL_API1}" |egrep 'MissingBlocks|UnderReplicatedBlocks|CorruptBlocks|StaleDataNodes'|awk -F":" '{print $2}'|sed 's/,//')
+read -r NUMDEADDN VOLFAIL <<<$(curl -s -k "https://${SDL_PRD_NN}:${SDL_PRD_NN_PORT}${SDL_API2}"| egrep 'NumDeadDataNodes|VolumeFailuresTotal' |awk -F":" '{print $2}'|sed 's/,//')
+echo "$CLUSTERNAME,$MISS,$UNDER,$CORRUPT,$STALEDN,$NUMDEADDN,$VOLFAIL" >> $HDFSFILE
+
+
+
+CLUSTERNAME="SDataLake_DR"
+CLUSTERHOST="ncwrnhpmsta0002.hadoop.charter.com"
+CLUSTERPORT=8443
+CLUSTERPATH="/api/v1/clusters/${CLUSTERNAME}?fields=alerts_summary"
+read -r C M U W <<<$(curl -s -k -n -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}${CLUSTERPATH} |egrep 'CRITICAL|MAINTENANCE|UNKNOWN|WARNING'|awk -F":" '{print $2}'|sed 's/,//')
+echo "$CLUSTERNAME,$C,$M,$U,$W" >> $OUTFILE
+HOSTS=$(curl -s -k -n -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}/api/v1/clusters/${CLUSTERNAME}/hosts?Hosts/host_status=UNHEALTHY |grep host_name|awk -F":" '{print $2}'|sed 's/"//g'|sed 's/,//'|xargs)
+echo "$CLUSTERNAME,$HOSTS" >> $HOSTFILE
+
+
+#### HDFS blocks/stale nodes
+SDL_DR_NN=ncwrnhpnama0002.hadoop.charter.com
+SDL_DR_NN_PORT=50470
+read -r MISS UNDER CORRUPT STALEDN <<<$(curl -s -k "https://${SDL_DR_NN}:${SDL_DR_NN_PORT}${SDL_API1}" |egrep 'MissingBlocks|UnderReplicatedBlocks|CorruptBlocks|StaleDataNodes'|awk -F":" '{print $2}'|sed 's/,//')
+read -r NUMDEADDN VOLFAIL <<<$(curl -s -k "https://${SDL_DR_NN}:${SDL_DR_NN_PORT}${SDL_API2}"| egrep 'NumDeadDataNodes|VolumeFailuresTotal' |awk -F":" '{print $2}'|sed 's/,//')
+echo "$CLUSTERNAME,$MISS,$UNDER,$CORRUPT,$STALEDN,$NUMDEADDN,$VOLFAIL" >> $HDFSFILE
+
+
+CLUSTERNAME="SDataFlow_DEV"
+CLUSTERHOST="ncednhfkafa0001.devhadoop.charter.com"
+CLUSTERPORT=8443
+CLUSTERPATH="/api/v1/clusters/${CLUSTERNAME}?fields=alerts_summary"
+read -r C M U W <<<$(curl -s -k -n -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}${CLUSTERPATH} |egrep 'CRITICAL|MAINTENANCE|UNKNOWN|WARNING'|awk -F":" '{print $2}'|sed 's/,//')
+echo "$CLUSTERNAME,$C,$M,$U,$W" >> $OUTFILE
+HOSTS=$(curl -s -k -n -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}/api/v1/clusters/${CLUSTERNAME}/hosts?Hosts/host_status=UNHEALTHY |grep host_name|awk -F":" '{print $2}'|sed 's/"//g'|sed 's/,//'|xargs)
+echo "$CLUSTERNAME,$HOSTS" >> $HOSTFILE
+
+
+CLUSTERNAME="SDataFlow_UAT"
+CLUSTERHOST="ncwunhfkafa0001.hadoop.charter.com"
+CLUSTERPORT=8443
+CLUSTERPATH="/api/v1/clusters/${CLUSTERNAME}?fields=alerts_summary"
+read -r C M U W <<<$(curl -s -k -n -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}${CLUSTERPATH} |egrep 'CRITICAL|MAINTENANCE|UNKNOWN|WARNING'|awk -F":" '{print $2}'|sed 's/,//')
+echo "$CLUSTERNAME,$C,$M,$U,$W" >> $OUTFILE
+HOSTS=$(curl -s -k -n -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}/api/v1/clusters/${CLUSTERNAME}/hosts?Hosts/host_status=UNHEALTHY |grep host_name|awk -F":" '{print $2}'|sed 's/"//g'|sed 's/,//'|xargs)
+echo "$CLUSTERNAME,$HOSTS" >> $HOSTFILE
+
+
+
+CLUSTERNAME="SDataFlow_PROD"
+CLUSTERHOST="ncepnhfkafa0001.hadoop.charter.com"
+CLUSTERPORT=8443
+CLUSTERPATH="/api/v1/clusters/${CLUSTERNAME}?fields=alerts_summary"
+read -r C M U W <<<$(curl -s -k -n -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}${CLUSTERPATH} |egrep 'CRITICAL|MAINTENANCE|UNKNOWN|WARNING'|awk -F":" '{print $2}'|sed 's/,//')
+echo "$CLUSTERNAME,$C,$M,$U,$W" >> $OUTFILE
+HOSTS=$(curl -s -k -n -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}/api/v1/clusters/${CLUSTERNAME}/hosts?Hosts/host_status=UNHEALTHY |grep host_name|awk -F":" '{print $2}'|sed 's/"//g'|sed 's/,//'|xargs)
+echo "$CLUSTERNAME,$HOSTS" >> $HOSTFILE
+
+
+CLUSTERNAME="SDataFlow_DR"
+CLUSTERHOST="ncwrnhfkafa0001.hadoop.charter.com"
+CLUSTERPORT=8443
+CLUSTERPATH="/api/v1/clusters/${CLUSTERNAME}?fields=alerts_summary"
+read -r C M U W <<<$(curl -s -k -n -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}${CLUSTERPATH} |egrep 'CRITICAL|MAINTENANCE|UNKNOWN|WARNING'|awk -F":" '{print $2}'|sed 's/,//')
+echo "$CLUSTERNAME,$C,$M,$U,$W" >> $OUTFILE
+HOSTS=$(curl -s -k -n -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}/api/v1/clusters/${CLUSTERNAME}/hosts?Hosts/host_status=UNHEALTHY |grep host_name|awk -F":" '{print $2}'|sed 's/"//g'|sed 's/,//'|xargs)
+echo "$CLUSTERNAME,$HOSTS" >> $HOSTFILE
+
+
+CLUSTERNAME="VOD_DEV_HDF"
+CLUSTERHOST="vm0dnhadita0001.devhadoop.charter.com"
+CLUSTERPORT=8443
+CLUSTERPATH="/api/v1/clusters/${CLUSTERNAME}?fields=alerts_summary"
+read -r C M U W <<<$(curl -s -k -n -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}${CLUSTERPATH} |egrep 'CRITICAL|MAINTENANCE|UNKNOWN|WARNING'|awk -F":" '{print $2}'|sed 's/,//')
+echo "$CLUSTERNAME,$C,$M,$U,$W" >> $OUTFILE
+HOSTS=$(curl -s -k -n -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}/api/v1/clusters/${CLUSTERNAME}/hosts?Hosts/host_status=UNHEALTHY |grep host_name|awk -F":" '{print $2}'|sed 's/"//g'|sed 's/,//'|xargs)
+echo "$CLUSTERNAME,$HOSTS" >> $HOSTFILE
+
+
+CLUSTERNAME="VOD_HDF"
+CLUSTERHOST="ncepnvodkad0001.hadoop.charter.com"
+CLUSTERPORT=8443
+CLUSTERPATH="/api/v1/clusters/${CLUSTERNAME}?fields=alerts_summary"
+read -r C M U W <<<$(curl -s -k -n -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}${CLUSTERPATH} |egrep 'CRITICAL|MAINTENANCE|UNKNOWN|WARNING'|awk -F":" '{print $2}'|sed 's/,//')
+echo "$CLUSTERNAME,$C,$M,$U,$W" >> $OUTFILE
+HOSTS=$(curl -s -k -n -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}/api/v1/clusters/${CLUSTERNAME}/hosts?Hosts/host_status=UNHEALTHY |grep host_name|awk -F":" '{print $2}'|sed 's/"//g'|sed 's/,//'|xargs)
+echo "$CLUSTERNAME,$HOSTS" >> $HOSTFILE
+
+
+CLUSTERNAME="VOD_DR_HDF"
+CLUSTERHOST="ncwrnvodkad0001.hadoop.charter.com"
+CLUSTERPORT=8443
+CLUSTERPATH="/api/v1/clusters/${CLUSTERNAME}?fields=alerts_summary"
+read -r C M U W <<<$(curl -s -k -n -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}${CLUSTERPATH} |egrep 'CRITICAL|MAINTENANCE|UNKNOWN|WARNING'|awk -F":" '{print $2}'|sed 's/,//')
+echo "$CLUSTERNAME,$C,$M,$U,$W" >> $OUTFILE
+HOSTS=$(curl -s -k -n -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}/api/v1/clusters/${CLUSTERNAME}/hosts?Hosts/host_status=UNHEALTHY |grep host_name|awk -F":" '{print $2}'|sed 's/"//g'|sed 's/,//'|xargs)
+echo "$CLUSTERNAME,$HOSTS" >> $HOSTFILE
+
+
+CLUSTERNAME="SECEMCDataLake_PROD"
+CLUSTERHOST="ncepnhpmsta0008.hadoop.charter.com"
+CLUSTERPORT=8443
+CLUSTERPATH="/api/v1/clusters/${CLUSTERNAME}?fields=alerts_summary"
+read -r C M U W <<<$(curl -s -k -n -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}${CLUSTERPATH} |egrep 'CRITICAL|MAINTENANCE|UNKNOWN|WARNING'|awk -F":" '{print $2}'|sed 's/,//')
+echo "$CLUSTERNAME,$C,$M,$U,$W" >> $OUTFILE
+HOSTS=$(curl -s -k -n -H "X-Requested-By: ambari" -X GET https://${CLUSTERHOST}:${CLUSTERPORT}/api/v1/clusters/${CLUSTERNAME}/hosts?Hosts/host_status=UNHEALTHY |grep host_name|awk -F":" '{print $2}'|sed 's/"//g'|sed 's/,//'|xargs)
+echo "$CLUSTERNAME,$HOSTS" >> $HOSTFILE
+
+
+CLUSTERNAME="XMBI-DR"
+CLUSTERHOST="ncwrnmomsta0001.hadoop.charter.com"
+CLUSTERPORT=7183
+CLUSTERPATH="/api/v1/hosts"
+#### HDFS blocks/stale nodes
+XMBI_DR_NN=ncwrnmonama0001.hadoop.charter.com
+SDL_DR_NN_PORT=50470
+read -r MISS UNDER CORRUPT STALEDN <<<$(curl -s -k "https://${XMBI_DR_NN}:${SDL_DR_NN_PORT}${SDL_API1}" |egrep 'MissingBlocks|UnderReplicatedBlocks|CorruptBlocks|StaleDataNodes'|awk -F":" '{print $2}'|sed 's/,//')
+read -r NUMDEADDN VOLFAIL <<<$(curl -s -k "https://${XMBI_DR_NN}:${SDL_DR_NN_PORT}${SDL_API2}"| egrep 'NumDeadDataNodes|VolumeFailuresTotal' |awk -F":" '{print $2}'|sed 's/,//')
+echo "$CLUSTERNAME,$MISS,$UNDER,$CORRUPT,$STALEDN,$NUMDEADDN,$VOLFAIL" >> $HDFSFILE
+
+
+CLUSTERNAME="Spectrum DXMBI"
+CLUSTERHOST="ncednmonama0001.devhadoop.charter.com"
+CLUSTERPORT=7183
+CLUSTERPATH="/api/v1/hosts"
+
+#### HDFS blocks/stale nodes
+XMBI_DEV_NN=ncednmonama0001.devhadoop.charter.com
+SDL_DR_NN_PORT=50470
+read -r MISS UNDER CORRUPT STALEDN <<<$(curl -s -k "https://${XMBI_DEV_NN}:${SDL_DR_NN_PORT}${SDL_API1}" |egrep 'MissingBlocks|UnderReplicatedBlocks|CorruptBlocks|StaleDataNodes'|awk -F":" '{print $2}'|sed 's/,//')
+read -r NUMDEADDN VOLFAIL <<<$(curl -s -k "https://${XMBI_DEV_NN}:${SDL_DR_NN_PORT}${SDL_API2}"| egrep 'NumDeadDataNodes|VolumeFailuresTotal' |awk -F":" '{print $2}'|sed 's/,//')
+echo "$CLUSTERNAME,$MISS,$UNDER,$CORRUPT,$STALEDN,$NUMDEADDN,$VOLFAIL" >> $HDFSFILE
+
+
+CLUSTERNAME="Spectrum PXMBI"
+CLUSTERHOST="ncepnmomsta0001.hadoop.charter.com"
+CLUSTERPORT=7183
+CLUSTERPATH="/api/v1/hosts"
+
+#### HDFS blocks/stale nodes
+XMBI_PROD_NN=ncepnmonama0002.hadoop.charter.com
+SDL_DR_NN_PORT=50470
+read -r MISS UNDER CORRUPT STALEDN <<<$(curl -s -k "https://${XMBI_PROD_NN}:${SDL_DR_NN_PORT}${SDL_API1}" |egrep 'MissingBlocks|UnderReplicatedBlocks|CorruptBlocks|StaleDataNodes'|awk -F":" '{print $2}'|sed 's/,//')
+read -r NUMDEADDN VOLFAIL <<<$(curl -s -k "https://${XMBI_PROD_NN}:${SDL_DR_NN_PORT}${SDL_API2}"| egrep 'NumDeadDataNodes|VolumeFailuresTotal' |awk -F":" '{print $2}'|sed 's/,//')
+echo "$CLUSTERNAME,$MISS,$UNDER,$CORRUPT,$STALEDN,$NUMDEADDN,$VOLFAIL" >> $HDFSFILE
+
+
+CLUSTERNAME="UAT_ECUCDH"
+CLUSTERHOST="hadpedge01.hadoop.charter.com"
+CLUSTERPORT=7183
+CLUSTERPATH="/api/v1/hosts"
+
+
+#Send to DB
+#echo "insert into monitoring.alerts (date,cluster,critical,maint,unknown,warning) values" >> $SQLFILE
+#cat $HOME/$OUTFILE | while read line
+#do
+#    CLUSTER=$(echo $line|awk -F"," '{print $1}')
+#    CRIT=$(echo $line|awk -F"," '{print $2}')
+#    MAINT=$(echo $line|awk -F"," '{print $3}')
+#    UNKN=$(echo $line|awk -F"," '{print $4}')
+#    WARN=$(echo $line|awk -F"," '{print $5}')
+#    echo "('$NOW','$CLUSTER',$CRIT,$MAINT,$UNKN,$WARN)," >> $SQLFILE
+#done
+
+sed -i '$ s/.$//' $SQLFILE
+echo ";" >> $SQLFILE
+mysql < $SQLFILE
+
+
+sed -i 's/\x0D$//' $OUTFILE
+sed -i 's/\x0D$//' $HOSTFILE
+sed -i 's/\x0D$//' $HDFSFILE
+
+SUBJECT="Cluster Alert Summary - $NOW"
+
+# Create HTML file - Alerts
+awk 'BEGIN{
+FS=","
+#print  "MIME-Version: 1.0"
+#print  "Content-Type: text/html"
+#print  "Content-Disposition: inline"
+print  "<HTML>""<H3>Critical Alerts</H3><TABLE border="1"><TH>Cluster/Alert</TH><TH>Critical</TH><TH>Maintenance</TH><TH>Unknown</TH><TH>Warning</TH>"
+}
+ {
+printf "<TR>"
+for(i=1;i<=NF;i++)
+printf "<TD>%s</TD>", $i
+print "</TR>"
+ }
+END{
+#print "</TABLE></BODY></HTML>"
+print "</TABLE>"
+ }
+' $HOME/$OUTFILE > $HOME/alerts.html
+
+# Create HTML file - Unhealty Nodes
+awk 'BEGIN{
+FS=","
+#print  "MIME-Version: 1.0"
+#print  "Content-Type: text/html"
+#print  "Content-Disposition: inline"
+print  "<H3>Unhealthy Nodes</H3><TABLE border="1"><TH>Cluster</TH><TH>UnHealthy Nodes</TH>"
+}
+ {
+printf "<TR>"
+for(i=1;i<=NF;i++)
+printf "<TD>%s</TD>", $i
+print "</TR>"
+ }
+END{
+print "</TABLE></BODY></HTML>"
+ }
+' $HOME/$HOSTFILE >> $HOME/alerts.html
+
+# Create HTML file - HDFS
+awk 'BEGIN{
+FS=","
+print  "<H3>HDFS Alerts</H3><TABLE border="1"><TH>Cluster</TH><TH>MissingBlocks</TH><TH>UnderReplicatedBlocks</TH><TH>CorruptBlocks</TH><TH>StaleDataNodes</TH><TH>DeadDataNodes</TH><TH>VolumeFailures</TH>"
+}
+ {
+printf "<TR>"
+for(i=1;i<=NF;i++)
+printf "<TD>%s</TD>", $i
+print "</TR>"
+ }
+END{
+print "</TABLE></BODY></HTML>"
+ }
+' $HOME/$HDFSFILE >> $HOME/alerts.html
+
+
+# Email the HTML file
+(echo "To: $EMAIL"; echo "MIME-Version: 1.0"  ; echo "Subject: $SUBJECT"   ; echo "Content-Type: text/html"; cat $HOME/alerts.html) | 2>/dev/null /usr/sbin/sendmail -t
+
+LINUX-kstluwk06 $
